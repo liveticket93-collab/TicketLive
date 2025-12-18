@@ -9,7 +9,7 @@ const FEATURED_EVENTS = [
     date: "Dec 15, 2024 • 8:00 PM",
     location: "Miami Arena, FL",
     price: "$149",
-    image: "https://images.unsplash.com/photo-1470229722913-7c0d2dbbafd3?q=80&w=2670&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1616709062048-788acece6a51?q=80&w=1631&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     category: "Festival"
   },
   {
@@ -27,7 +27,7 @@ const FEATURED_EVENTS = [
     date: "Feb 10, 2025 • 7:30 PM",
     location: "Crypto.com Arena, CA",
     price: "$450",
-    image: "https://images.unsplash.com/photo-1546519638-68e109498ee3?q=80&w=2690&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1581049966083-210f169bc2b4?q=80&w=771&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     category: "Sports"
   },
     {
@@ -36,7 +36,7 @@ const FEATURED_EVENTS = [
     date: "Mar 05, 2025 • 8:00 PM",
     location: "Sydney Opera House",
     price: "$120",
-    image: "https://images.unsplash.com/photo-1514525253440-b393452e8d26?q=80&w=2574&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1580809361436-42a7ec204889?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     category: "Theater"
   },
     {
