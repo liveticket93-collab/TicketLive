@@ -12,8 +12,8 @@ import { toast } from "sonner";
 export default function Home() {
   const handleSubscribe = (formData: FormData) => {
     // In a real app we would send the data
-    toast.success("Subscribed successfully!", {
-      description: "You'll be the first to know about new events.",
+    toast.success("¡Suscrito exitosamente!", {
+      description: "Serás el primero en enterarte de nuevos eventos.",
     });
   };
 
