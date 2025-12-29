@@ -2,7 +2,7 @@ import { RegisterFormValuesType } from "@/validators/registerSchema";
 import { LoginFormValuesType } from "@/validators/loginSchema";
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ; //|| "http://localhost:3001"
 
 export interface AuthResponse {
   success: boolean;
@@ -35,38 +35,7 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
-export const tokenManager = {
-  setToken: (token: string): void => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", token);
-    }
-  },
 
-
-  getToken: (): string | null => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("auth_token");
-    }
-    return null;
-  },
-
-
-  removeToken: (): void => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
-    }
-  },
-};
-
-/**
- * 📝 FUNCIÓN DE REGISTRO
- * 
- * Envía los datos del usuario al endpoint de registro del backend.
- * 
- * @param userData - Datos del formulario de registro
- * @returns Promesa con la respuesta del servidor
- * @throws Error si el registro falla
- */
 export const registerUser = async (
   userData: RegisterFormValuesType
 ): Promise<AuthResponse> => {
@@ -75,6 +44,7 @@ export const registerUser = async (
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
+      credentials: "include", 
     });
     const data = await response.json();
 
@@ -91,16 +61,7 @@ export const registerUser = async (
   }
 };
 
-/**
- * 🔑 FUNCIÓN DE LOGIN
- * 
- * Envía las credenciales al endpoint de login del backend.
- * Si el login es exitoso, guarda el token en localStorage.
- * 
- * @param userData - Credenciales del usuario (email y password)
- * @returns Promesa con la respuesta del servidor
- * @throws Error si el login falla
- */
+
 export const loginUser = async (
   userData: LoginFormValuesType
 ): Promise<AuthResponse> => {
@@ -111,6 +72,7 @@ export const loginUser = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify(userData),
+      credentials: "include", 
     });
     const data = await response.json();
 
@@ -118,9 +80,6 @@ export const loginUser = async (
       throw new Error(data?.message || "Error al iniciar sesión");
     }
 
-    if (data.token) {
-      tokenManager.setToken(data.token);
-    }
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -135,7 +94,10 @@ export const fetchUserProfile = async (): Promise<AuthResponse['user']> => {
   try {
     const response = await fetch(`${API_URL}/users/profile`, {
       method: "GET",
-      headers: getAuthHeaders(),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", 
     });
 
     const data = await response.json();
@@ -151,45 +113,17 @@ export const fetchUserProfile = async (): Promise<AuthResponse['user']> => {
 };
 
 
-export const logoutUser = (): void => {
-  tokenManager.removeToken();
-
-  // 💡 OPCIONAL: Si tu backend tiene un endpoint de logout
-  // const token = tokenManager.getToken();
-  // if (token) {
-  //   fetch(`${API_URL}/users/logout`, {
-  //     method: "POST",
-  //     headers: {
-  //       "Authorization": `Bearer ${token}`,
-  //     },
-  //   });
-  // }
-};
-
-/**
- * 🛡️ FUNCIÓN PARA OBTENER HEADERS CON AUTENTICACIÓN
- * 
- * Utilidad para agregar el token a las peticiones protegidas.
- * Úsala cuando necesites hacer peticiones que requieran autenticación.
- * 
- * @returns Headers con el token de autenticación
- */
-export const getAuthHeaders = (): HeadersInit => {
-  const token = tokenManager.getToken();
-
-  return {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-  };
-};
-
-/**
- * 👤 FUNCIÓN PARA VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO
- * 
- * Verifica si existe un token en localStorage.
- * 
- * @returns true si hay un token, false si no
- */
-export const isAuthenticated = (): boolean => {
-  return !!tokenManager.getToken();
+export const logoutUser = async (): Promise<void> => {
+  try {
+    
+    await fetch(`${API_URL}/auth/logout`, {
+      method: "POST", 
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+  } catch (error) {
+    console.error("Error al cerrar sesión en servidor", error);
+  }
 };

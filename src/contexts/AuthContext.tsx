@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { LoginFormValuesType } from "@/validators/loginSchema";
 import { RegisterFormValuesType } from "@/validators/registerSchema";
-import { AuthResponse, isAuthenticated, loginUser, logoutUser, registerUser, tokenManager, fetchUserProfile, AuthError } from "@/services/auth.service";
+import { AuthResponse, loginUser, logoutUser, registerUser, fetchUserProfile } from "@/services/auth.service";
 
 
 interface User {
@@ -39,31 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Verificamos si hay un token
-        if (isAuthenticated()) {
-          try {
-            const userData = await fetchUserProfile();
-            if (userData) {
-              setUser({
-                ...userData,
-                role: userData.role || 'user'
-              });
-            } else {
-              tokenManager.removeToken();
-            }
-          } catch (error) {
-              console.error("Error al validar sesión:", error);
-              // Solo cerramos sesión si el token es inválido (401)
-              if (error instanceof AuthError && error.status === 401) {
-                tokenManager.removeToken();
-                setUser(null);
-              }
-              // Si es otro error (ej. servidor caído), mantenemos el token
-              // pero el usuario quedará como no logueado temporalmente en la UI
-          }
+        // Al usar cookies HttpOnly, no podemos verificar token en localStorage.
+        // Intentamos obtener el perfil directamente. Si falla (401), no estamos logueados.
+        const userData = await fetchUserProfile();
+        if (userData) {
+          setUser({
+            ...userData,
+            role: userData.role || 'user'
+          });
         }
       } catch (error) {
-        console.error("Error al inicializar auth:", error);
+        // Si hay error (ej. 401 Unauthorized), asumimos que no hay sesión válida
+        // No es necesario loguear error en consola si es un 401 esperado
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -122,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /*
    * FUNCIÓN DE LOGOUT
    */
-  const logout = () => {
-    logoutUser(); 
+  const logout = async () => {
+    await logoutUser(); 
     setUser(null); 
     router.push("/login"); 
   };
