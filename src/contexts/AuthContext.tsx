@@ -1,12 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { LoginFormValuesType } from "@/validators/loginSchema";
 import { RegisterFormValuesType } from "@/validators/registerSchema";
-import { AuthResponse, loginUser, logoutUser, registerUser, fetchUserProfile } from "@/services/auth.service";
-
-
+import {
+  AuthResponse,
+  loginUser,
+  logoutUser,
+  registerUser,
+  fetchUserProfile,
+} from "@/services/auth.service";
 
 interface User {
   id: string;
@@ -16,50 +20,43 @@ interface User {
 }
 
 interface AuthContextType {
-
   user: User | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-
-
   login: (credentials: LoginFormValuesType) => Promise<void>;
   register: (userData: RegisterFormValuesType) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+    //Función para refrescar usuario
+  const refreshUser = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const userData = await fetchUserProfile();
+
+      if (userData) {
+        setUser({ ...userData, role: userData.role || "user" });
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // Al usar cookies HttpOnly, no podemos verificar token en localStorage.
-        // Intentamos obtener el perfil directamente. Si falla (401), no estamos logueados.
-        const userData = await fetchUserProfile();
-        if (userData) {
-          setUser({
-            ...userData,
-            role: userData.role || 'user'
-          });
-        }
-      } catch (error) {
-        // Si hay error (ej. 401 Unauthorized), asumimos que no hay sesión válida
-        // No es necesario loguear error en consola si es un 401 esperado
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initAuth();
-  }, []);
+    refreshUser(); // runs once when AuthProvider mounts
+  }, [refreshUser]);
 
   /*
    * FUNCIÓN DE LOGIN
@@ -74,10 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: response.user.id,
           email: response.user.email,
           name: response.user.name,
-          role: response.user.role || 'user',
+          role: response.user.role || "user",
         });
       }
-
     } catch (error) {
       throw error;
     } finally {
@@ -98,9 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Asumimos que RegisterFormValuesType tiene email y password compatibles con login
       await login({
         email: userData.email,
-        password: userData.password
+        password: userData.password,
       });
-
     } catch (error) {
       throw error;
     } finally {
@@ -117,7 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
-
   const value: AuthContextType = {
     user,
     isLoading,
@@ -125,11 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
 
 export function useAuth() {
   const context = useContext(AuthContext);
