@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "sonner";
 
 
@@ -27,13 +28,15 @@ export default function RootLayout({
       <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
         {/* AuthProvider envuelve toda la app para proveer el contexto de autenticación */}
         <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
-          {/* Toaster para mostrar notificaciones en toda la app */}
-          <Toaster position="top-right" richColors />
+          <CartProvider>
+            <Navbar />
+            {children}
+            <Footer />
+            {/* Toaster para mostrar notificaciones en toda la app */}
+            <Toaster position="top-right" richColors />
+          </CartProvider>
         </AuthProvider>
       </body>
-    </html>
+    </html >
   );
 }

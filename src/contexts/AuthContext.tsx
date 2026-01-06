@@ -7,6 +7,7 @@ import { RegisterFormValuesType } from "@/validators/registerSchema";
 import { AuthResponse, loginUser, logoutUser, registerUser, fetchUserProfile } from "@/services/auth.service";
 
 
+
 interface User {
   id: string;
   email: string;
@@ -92,14 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       // 1. Registramos al usuario
       await registerUser(userData);
-      
+
       // 2. Si el registro es exitoso, iniciamos sesión automáticamente
       // Asumimos que RegisterFormValuesType tiene email y password compatibles con login
-      await login({ 
-        email: userData.email, 
-        password: userData.password 
+      await login({
+        email: userData.email,
+        password: userData.password
       });
-      
+
     } catch (error) {
       throw error;
     } finally {
@@ -111,9 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * FUNCIÓN DE LOGOUT
    */
   const logout = async () => {
-    await logoutUser(); 
-    setUser(null); 
-    router.push("/login"); 
+    await logoutUser();
+    setUser(null);
+    router.push("/login");
   };
 
 
