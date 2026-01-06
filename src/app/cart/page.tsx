@@ -13,6 +13,8 @@ export default function CartPage() {
     clearCart,
     getItemCount,
     getTotal,
+    increaseQuantity,
+    decreaseQuantity,
   } = useCart();
 
   const { isLoggedIn } = useAuth();
@@ -34,12 +36,12 @@ export default function CartPage() {
 
           {getItemCount() > 0 && (
             <span className="text-sm px-3 py-1 rounded-full bg-secondary text-muted-foreground">
-              {getItemCount()} {getItemCount() === 1 ? "item" : "items"}
+              {getItemCount()} {getItemCount() === 1 ? "ticket" : "tickets"}
             </span>
           )}
         </div>
 
-        {/* Empty cart */}
+        {/* Carro Vacío */}
         {cartItems.length === 0 ? (
           <div className="rounded-2xl bg-linear-to-b from-slate-900/70 to-slate-950/70 ring-1 ring-white/10 p-16 text-center">
             <p className="text-xl font-medium mb-2">
@@ -59,14 +61,14 @@ export default function CartPage() {
               <div className="col-span-2 text-center">Eliminar</div>
             </div>
 
-            {/* Items */}
+            {/* Productos */}
             <div className="divide-y divide-white/5">
               {cartItems.map(item => (
                 <div
                   key={item.id}
                   className="grid grid-cols-1 md:grid-cols-12 gap-6 px-6 py-6 items-center"
                 >
-                  {/* Product */}
+                  {/* Producto */}
                   <div className="md:col-span-8 flex gap-4 items-center">
                     <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center overflow-hidden">
                       {item.image ? (
@@ -77,7 +79,7 @@ export default function CartPage() {
                         //   height={112}
                         //   className="object-contain"
                         // />
-                        
+
                         //Quitar esto cuando se deje de usar el mock:
                         <img
                           src={item.image}
@@ -91,22 +93,50 @@ export default function CartPage() {
                         </span>
                       )}
                     </div>
-
                     <div>
                       <h3 className="font-semibold text-white">
                         {item.name}
                       </h3>
+
                       {item.description && (
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                           {item.description}
                         </p>
                       )}
+
+                      {/* Controles de cantidad */}
+                      <div className="flex items-center gap-3 mt-3">
+                        <button
+                          onClick={() => decreaseQuantity(item.id)}
+                          className="w-8 h-8 rounded-lg bg-secondary text-white hover:bg-secondary/80 transition"
+                        >
+                          −
+                        </button>
+
+                        <span className="font-semibold text-white">
+                          {item.quantity}
+                        </span>
+
+                        <button
+                          onClick={() => increaseQuantity(item.id)}
+                          className="w-8 h-8 rounded-lg bg-secondary text-white hover:bg-secondary/80 transition"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
+
+
+
+
+
+
+
                   </div>
 
                   {/* Price */}
                   <div className="md:col-span-2 text-center font-semibold text-primary">
-                    ${item.price.toFixed(2)}
+                    ${(item.price * item.quantity).toFixed(2)}
                   </div>
 
                   {/* Remove */}
@@ -122,7 +152,7 @@ export default function CartPage() {
               ))}
             </div>
 
-            {/* Summary */}
+            {/* Total */}
             <div className="border-t border-white/5 px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
                 <p className="text-sm text-muted-foreground">

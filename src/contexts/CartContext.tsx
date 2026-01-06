@@ -6,9 +6,15 @@ import { Product } from "@/interfaces/product.interface";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+type CartItem = Product & {
+  quantity: number;
+};
+
 interface CartContextType {
-  cartItems: Product[];
+  cartItems: CartItem[];
   addToCart: (product: Product) => void;
+  increaseQuantity: (productId: number) => void;
+  decreaseQuantity: (productId: number) => void;
   removeFromCart: (productId: number) => void;
   clearCart: () => void;
   getTotal: () => number;
@@ -20,7 +26,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAuth();
-  const [cartItems, setCartItems] = useState<Product[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   //PERSISTENCIA LOCAL
   useEffect(() => {
     const storedCart = localStorage.getItem("cart");
@@ -33,7 +39,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-   //LIMPIAR EL CARRITO AL HACER LOGOUT
+  //LIMPIAR EL CARRITO AL HACER LOGOUT
   useEffect(() => {
     if (!isLoggedIn) {
       setCartItems([]);
@@ -41,21 +47,64 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLoggedIn]);
 
-  //ACCIONES
+  //FUNCIONES
   const addToCart = (product: Product) => {
     if (!isLoggedIn) {
       toast.error("Debes estar logueado para agregar productos al carrito");
       return;
     }
 
-    const exists = cartItems.some(item => item.id === product.id);
-    if (exists) {
-      toast.warning("Este producto ya está en tu carrito");
+    const existingItem = cartItems.find(item => item.id === product.id);
+
+    // Si el producto ya existe en el carrito
+    if (existingItem) {
+      if (existingItem.quantity >= 6) {
+        toast.error("Un usuario no puede comprar más de 6 boletos");
+        return;
+      }
+
+      setCartItems(prev =>
+        prev.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
+
+      toast.success("Se agregó otro boleto");
       return;
     }
 
-    setCartItems(prev => [...prev, product]);
+    // Si el producto no existe, se agrega con cantidad 1
+    setCartItems(prev => [...prev, { ...product, quantity: 1 }]);
     toast.success("Producto agregado al carrito");
+  };
+
+  const increaseQuantity = (productId: number) => {
+    setCartItems(prev =>
+      prev.map(item => {
+        if (item.id === productId) {
+          if (item.quantity >= 6) {
+            toast.error("Un usuario no puede comprar más de 6 boletos");
+            return item;
+          }
+          return { ...item, quantity: item.quantity + 1 };
+        }
+        return item;
+      })
+    );
+  };
+
+  const decreaseQuantity = (productId: number) => {
+    setCartItems(prev =>
+      prev
+        .map(item =>
+          item.id === productId
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
+        )
+        .filter(item => item.quantity > 0)
+    );
   };
 
   const removeFromCart = (productId: number) => {
@@ -68,9 +117,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getTotal = () =>
-    cartItems.reduce((total, item) => total + item.price, 0);
+    cartItems.reduce(
+      (total, item) => total + item.price * item.quantity,
+      0
+    );
 
-  const getItemCount = () => cartItems.length;
+  const getItemCount = () =>
+    cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const getIdItems = () => cartItems.map(item => item.id);
 
@@ -79,6 +132,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       value={{
         cartItems,
         addToCart,
+        increaseQuantity,
+        decreaseQuantity,
         removeFromCart,
         clearCart,
         getTotal,

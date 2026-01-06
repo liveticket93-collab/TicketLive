@@ -17,7 +17,7 @@ export default function LoginPage() {
 
 
   if (isLoading || isLoggedIn) {
-    return null; // O un spinner
+    return null; 
   }
 
   return (
