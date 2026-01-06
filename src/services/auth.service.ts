@@ -40,7 +40,7 @@ export const registerUser = async (
   userData: RegisterFormValuesType
 ): Promise<AuthResponse> => {
   try {
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const response = await fetch(`${API_URL}/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(userData),
@@ -66,7 +66,7 @@ export const loginUser = async (
   userData: LoginFormValuesType
 ): Promise<AuthResponse> => {
   try {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch(`${API_URL}/auth/signin`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -92,7 +92,7 @@ export const loginUser = async (
 
 export const fetchUserProfile = async (): Promise<AuthResponse['user']> => {
   try {
-    const response = await fetch(`${API_URL}/users/profile`, {
+    const response = await fetch(`${API_URL}/users/me`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export const fetchUserProfile = async (): Promise<AuthResponse['user']> => {
 export const logoutUser = async (): Promise<void> => {
   try {
     
-    await fetch(`${API_URL}/auth/logout`, {
+    await fetch(`${API_URL}/auth/signout`, {
       method: "POST", 
       headers: {
         "Content-Type": "application/json",
