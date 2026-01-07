@@ -123,15 +123,15 @@ export default function DashboardPage() {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify({ profile_photo: "" }),
+          body: JSON.stringify({ profile_photo: null as any }),
         });
 
         if (!response.ok) {
           throw new Error('Error al eliminar la imagen en el servidor');
         }
 
-        // Actualizar usuario en localStorage
-        updateUser({ profile_photo: null });
+        // Actualizar usuario en localStorage (usar undefined para TypeScript)
+        updateUser({ profile_photo: undefined });
 
         Swal.fire({
           icon: 'success',
