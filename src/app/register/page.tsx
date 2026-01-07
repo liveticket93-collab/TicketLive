@@ -1,0 +1,40 @@
+"use client";
+import RegisterForm from "@/components/forms/RegisterForm";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export default function RegisterPage() {
+  const { isLoggedIn, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, isLoading, router]);
+
+  if (isLoading || isLoggedIn) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col w-screen items-center justify-center px-4">
+      <h1 className="mt-5 mb-5 text-2xl font-bold">
+        Crea tu cuenta de TicketLive
+      </h1>
+      <h2 className="text-xl mb-5 font-bold text-gray-500 text-center">
+        Descubre eventos y recibe alertas de tus artistas favoritos. Además
+        descarga tus boletos de forma rápida y segura.
+      </h2>
+      <RegisterForm />
+      <h3 className="text-lg mb-9">
+        ¿Ya tienes una cuenta de TicketLive?{" "}
+        <Link href="/login" className="text-blue-600 hover:underline">
+          Ingresa
+        </Link>
+      </h3>
+    </div>
+  );
+}
