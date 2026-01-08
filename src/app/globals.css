@@ -18,7 +18,7 @@
 }
 
 .form-button{
-  @apply w-1/2 text-white bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-5 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-purple-500/50 mt-6 mx-auto hover:cursor-pointer;
+  @apply px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-purple-500/40 hover:from-purple-700 hover:to-pink-700 transition hover:cursor-pointer;
 }
 
 .form-error{
