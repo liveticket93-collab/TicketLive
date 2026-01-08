@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { Product } from "@/interfaces/product.interface";
+import { Product } from "@/interfaces/event.interface";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
