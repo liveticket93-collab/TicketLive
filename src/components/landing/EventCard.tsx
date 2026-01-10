@@ -3,6 +3,7 @@ import { Calendar, MapPin, Ticket, User, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import IEvent from "@/interfaces/event.interface";
 import { useCart } from "@/contexts/CartContext";
+import { useRouter } from "next/navigation"
 
 export function EventCard({
   id,
@@ -15,7 +16,7 @@ export function EventCard({
   price,
   imageUrl,
   status,
-  category,
+  categoryId,
 }: IEvent) {
   const dateObj = new Date(date);
   const formattedDate = dateObj.toLocaleDateString("en-US", {
@@ -25,23 +26,19 @@ export function EventCard({
   });
 
   const { addToCart } = useCart();
+  const router = useRouter();
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-secondary/30 border border-white/5 hover:border-sidebar-accent/50 transition-all duration-500 hover:shadow-[0_0_50px_-12px_rgba(139,92,246,0.2)]">
       {/* Image Container */}
       <div className="relative h-64 w-full overflow-hidden">
-        <div className="absolute top-4 left-4 z-10">
-          <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-semibold border border-white/10 uppercase tracking-wider">
-            {category}
-          </span>
-        </div>
         <Image
           src={imageUrl}
           alt={title}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-80" />
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent opacity-80" />
       </div>
 
       {/* Content */}
@@ -74,7 +71,10 @@ export function EventCard({
           </div>
           <div className="event-details">
             <Clock className="event-icons" />
-            <span>{start_time.split("T")[1].split(".")[0]}</span>
+            <span>{start_time.split("T")[1].split(":00.")[0]}</span>
+          </div>
+          <div>
+            <button className="primary" onClick={() => router.push(`/events/${id}`)}>View details</button>
           </div>
         </div>
 
@@ -85,7 +85,26 @@ export function EventCard({
             </span>
             <span className="text-lg font-bold text-white">{price}$</span>
           </div>
-          <Button onClick={() => addToCart({ id, title, price, imageUrl, category, status, capacity, location, date, start_time, description })} variant="ghost" size="sm" className="form-button">
+          <Button
+            onClick={() =>
+              addToCart({
+                id,
+                title,
+                price,
+                imageUrl,
+                categoryId,
+                status,
+                capacity,
+                location,
+                date,
+                start_time,
+                description,
+              })
+            }
+            variant="ghost"
+            size="sm"
+            className="form-button"
+          >
             Reservar ahora &rarr;
           </Button>
         </div>
