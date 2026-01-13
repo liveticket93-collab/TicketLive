@@ -1,4 +1,4 @@
-import Link from 'next/link';
+// import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 // import { cn } from '@/utils/cn'; // Will use if needed
 
@@ -20,7 +20,7 @@ export function Hero() {
         </div>
         
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 bg-gradient-to-br from-white via-white/90 to-white/50 bg-clip-text text-transparent drop-shadow-sm">
-          Vive lo <br /> 
+          Vivelo <br /> 
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">extraordinario</span>
         </h1>
         

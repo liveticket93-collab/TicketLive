@@ -2,7 +2,42 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ installed
+- npm, yarn, pnpm, or bun
+
+### Environment Variables
+
+Before running the project, you need to set up your environment variables:
+
+1. Copy the `.env.example` file to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Fill in the required variables in `.env.local`:
+
+```env
+# OpenAI API Configuration (Required for ChatBot)
+# Get your API key from: https://platform.openai.com/api-keys
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Backend API URL (Optional - uncomment if you have a backend)
+# NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+**Important:** The `OPENAI_API_KEY` is required for the ChatBot feature to work. Without it, the chatbot will not function.
+
+### Running the Development Server
+
+First, install the dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev

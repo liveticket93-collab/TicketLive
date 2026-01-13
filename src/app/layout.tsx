@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "sonner";
+import { ChatBot } from "@/components/ui/ChatBot";
 
 
 const inter = Inter({
@@ -34,6 +35,7 @@ export default function RootLayout({
             <Footer />
             {/* Toaster para mostrar notificaciones en toda la app */}
             <Toaster position="top-right" richColors />
+            <ChatBot />
           </CartProvider>
         </AuthProvider>
       </body>
