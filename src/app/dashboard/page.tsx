@@ -3,9 +3,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Swal from "sweetalert2";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { updateUserProfile, uploadProfileImage } from "@/services/auth.service";
+import {
+  validateImageFile,
+  createImagePreview,
+  confirmDelete,
+  showSuccessMessage,
+  showErrorMessage,
+} from "@/utils/dashboard.helpers";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading, updateUser } = useAuth();
@@ -24,12 +29,14 @@ export default function DashboardPage() {
     birthday: "",
   });
 
+  // Redirect si no está autenticado
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, loading, router]);
 
+  // Cargar datos del usuario en el formulario
   useEffect(() => {
     if (user) {
       setFormData({
@@ -42,6 +49,7 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // Loading state
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -52,10 +60,7 @@ export default function DashboardPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSaveProfile = async () => {
@@ -63,38 +68,16 @@ export default function DashboardPage() {
       setIsSaving(true);
 
       // Guardar en el backend
-      const response = await fetch(`${API_URL}/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar el perfil");
-      }
+      await updateUserProfile(user.id, formData);
 
       // Actualizar en localStorage y estado
       updateUser(formData);
 
-      Swal.fire({
-        icon: "success",
-        title: "¡Perfil actualizado!",
-        text: "Tus datos se han guardado correctamente",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
+      showSuccessMessage("¡Perfil actualizado!", "Tus datos se han guardado correctamente");
       setIsEditing(false);
     } catch (error) {
       console.error("Error saving profile:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo actualizar el perfil. Inténtalo de nuevo.",
-      });
+      showErrorMessage("Error", "No se pudo actualizar el perfil. Inténtalo de nuevo.");
     } finally {
       setIsSaving(false);
     }
@@ -104,98 +87,27 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tamaño (max 1MB)
-    if (file.size > 1000000) {
-      Swal.fire({
-        icon: "error",
-        title: "Archivo muy grande",
-        text: "La imagen debe ser menor a 1MB",
-      });
-      return;
-    }
+    // Validar archivo
+    if (!validateImageFile(file)) return;
 
-    // Validar tipo
-    if (!file.type.match(/image\/(jpg|jpeg|png|webp)/)) {
-      Swal.fire({
-        icon: "error",
-        title: "Formato no válido",
-        text: "Solo se permiten imágenes JPG, PNG o WebP",
-      });
-      return;
-    }
-
-    // Preview local
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Subir al backend (Cloudinary)
     try {
+      // Preview local
+      const preview = await createImagePreview(file);
+      setImagePreview(preview);
+
+      // Subir al backend (Cloudinary)
       setIsUploading(true);
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      console.log("📤 Subiendo imagen a:", `${API_URL}/file-upload/profileImage/${user.id}`);
-
-      const response = await fetch(
-        `${API_URL}/file-upload/profileImage/${user.id}`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        }
-      );
-
-      console.log("📥 Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
-        throw new Error("Error al subir la imagen");
-      }
-
-      // Intentar parsear como JSON primero, si falla, usar como texto
-      const contentType = response.headers.get("content-type");
-      let imageUrl;
-
-      if (contentType && contentType.includes("application/json")) {
-        const jsonResponse = await response.json();
-        console.log("📦 JSON Response:", jsonResponse);
-        imageUrl = jsonResponse.url || jsonResponse.profile_photo || jsonResponse;
-      } else {
-        imageUrl = await response.text();
-        console.log("📝 Text Response:", imageUrl);
-      }
-
-      // Limpiar la URL (remover comillas si existen)
-      imageUrl = imageUrl.replace(/^["']|["']$/g, '');
-
-      console.log("✅ URL de imagen limpia:", imageUrl);
+      const imageUrl = await uploadProfileImage(user.id, file);
 
       // Actualizar usuario en localStorage y estado
       updateUser({ profile_photo: imageUrl });
 
-      console.log("💾 Usuario actualizado en localStorage");
-
-      Swal.fire({
-        icon: "success",
-        title: "¡Imagen actualizada!",
-        text: "Tu foto de perfil se ha actualizado correctamente",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
+      showSuccessMessage("¡Imagen actualizada!", "Tu foto de perfil se ha actualizado correctamente");
       setImagePreview(null);
     } catch (error) {
-      console.error("❌ Error uploading image:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo actualizar la imagen. Inténtalo de nuevo.",
-      });
+      console.error("Error uploading image:", error);
+      showErrorMessage("Error", "No se pudo actualizar la imagen. Inténtalo de nuevo.");
       setImagePreview(null);
     } finally {
       setIsUploading(false);
@@ -203,51 +115,20 @@ export default function DashboardPage() {
   };
 
   const handleDeleteImage = async () => {
-    const result = await Swal.fire({
-      title: "¿Eliminar foto de perfil?",
-      text: "Esta acción no se puede deshacer",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-    });
+    const confirmed = await confirmDelete();
+    if (!confirmed) return;
 
-    if (result.isConfirmed) {
-      try {
-        // Actualizar en backend
-        const response = await fetch(`${API_URL}/users/${user.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ profile_photo: null }),
-        });
+    try {
+      // Actualizar en backend
+      await updateUserProfile(user.id, { profile_photo: null });
 
-        if (!response.ok) {
-          throw new Error("Error al eliminar la imagen");
-        }
+      // Actualizar usuario en localStorage y estado
+      updateUser({ profile_photo: null });
 
-        // Actualizar usuario en localStorage y estado
-        updateUser({ profile_photo: null });
-
-        Swal.fire({
-          icon: "success",
-          title: "¡Foto eliminada!",
-          text: "Tu foto de perfil ha sido eliminada",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } catch (error) {
-        console.error("Error deleting image:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo eliminar la imagen. Inténtalo de nuevo.",
-        });
-      }
+      showSuccessMessage("¡Foto eliminada!", "Tu foto de perfil ha sido eliminada");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      showErrorMessage("Error", "No se pudo eliminar la imagen. Inténtalo de nuevo.");
     }
   };
 
@@ -347,7 +228,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Phone & DNI */}
+              {/* Phone & Birthday */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -366,39 +247,6 @@ export default function DashboardPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    DNI
-                  </label>
-                  <input
-                    type="text"
-                    name="dni"
-                    value={user.dni || ""}
-                    disabled
-                    placeholder="No registrado"
-                    className="w-full px-4 py-2 bg-zinc-700/30 border border-zinc-600 rounded-lg text-gray-400 cursor-not-allowed"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">El DNI no se puede modificar</p>
-                </div>
-              </div>
-
-              {/* Address & Birthday */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Dirección
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    placeholder="Ej: Av. Colón 123, Villa Carlos Paz"
-                    className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Fecha de nacimiento
                   </label>
                   <input
@@ -410,6 +258,22 @@ export default function DashboardPage() {
                     className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  placeholder="Ej: Av. Colón 123, Villa Carlos Paz"
+                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
               </div>
 
               {/* Action Buttons */}
