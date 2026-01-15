@@ -2,12 +2,12 @@ import { z } from "zod";
 import { tool } from "ai";
 
 // ============================================================================
-// CONFIGURATION
+// CONFIGURACIÓN
 // ============================================================================
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // ============================================================================
-// HELPERS
+// UTILIDADES (HELPERS)
 // ============================================================================
 
 /**
@@ -104,7 +104,7 @@ const removeFromCartSchema = z.object({
 });
 
 // ============================================================================
-// TOOL FACTORY
+// FÁBRICA DE HERRAMIENTAS (TOOL FACTORY)
 // ============================================================================
 
 export const createChatbotTools = (cookieHeader: string) => {
@@ -115,7 +115,7 @@ export const createChatbotTools = (cookieHeader: string) => {
     };
 
     return {
-        // --- BUSQUEDA ---
+        // --- BÚSQUEDA ---
         searchEvents: tool({
             description: "Buscar eventos por nombre, categoría o ubicación.",
             parameters: searchEventsSchema,
@@ -159,7 +159,7 @@ export const createChatbotTools = (cookieHeader: string) => {
             },
         }),
 
-        // --- CATEGORIAS ---
+        // --- CATEGORÍAS ---
         getCategories: tool({
             description: "Listar categorías de eventos.",
             parameters: z.object({}).optional(),
@@ -187,16 +187,11 @@ export const createChatbotTools = (cookieHeader: string) => {
                 const id = safeParseId(eventId);
                 const qty = safeParseInt(quantity, 1);
 
-                console.log(`[AddToCart] Attempting to add EventID: ${id} (Type: ${typeof id}), Qty: ${qty}`);
-                console.log(`[AddToCart] Auth Cookie Length: ${authHeaders.Cookie ? authHeaders.Cookie.length : 0}`);
-
                 const data = await fetchAPI('/cart/items', {
                     method: 'POST',
                     headers: authHeaders,
                     body: JSON.stringify({ eventId: id, quantity: qty })
                 });
-
-                console.log(`[AddToCart] Result:`, JSON.stringify(data));
 
                 return JSON.stringify({
                     success: !data.error,

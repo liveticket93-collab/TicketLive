@@ -50,7 +50,7 @@ export default function RegisterForm() {
       className="w-full max-w-2xl rounded-2xl bg-linear-to-b from-slate-900/70 to-slate-950/70 shadow-2xl shadow-black/40 ring-1 ring-white/10 p-10 md:p-12 flex flex-col gap-8 mb-9"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-        {/* EMAIL */}
+        {/* CORREO ELECTRÓNICO */}
         <div className="form-div">
           <label className="form-label" htmlFor="email">
             Correo electrónico
@@ -169,7 +169,7 @@ export default function RegisterForm() {
         {formik.isSubmitting ? "Creando tu cuenta..." : "Crea tu cuenta"}
       </button>
 
-      {/* Google register option */}
+      {/* Opción de registro con Google */}
       <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

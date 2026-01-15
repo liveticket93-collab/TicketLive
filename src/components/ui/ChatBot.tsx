@@ -180,7 +180,7 @@ export const ChatBot = () => {
             "bg-zinc-950/90 backdrop-blur-xl border border-white/10"
           )}
         >
-          {/* Header */}
+          {/* Encabezado (Header) */}
           <div className="p-4 bg-linear-to-r from-violet-600/20 to-pink-600/20 border-b border-white/10 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
@@ -228,7 +228,7 @@ export const ChatBot = () => {
                   Puedo ayudarte a encontrar eventos, consultar detalles, ver categorías y recomendar experiencias increíbles.
                 </p>
                 
-                {/* Quick Action Buttons */}
+                {/* Botones de Acción Rápida */}
                 <div className="flex flex-col gap-2 px-4 mt-6">
                   <button
                     onClick={() => {
@@ -286,7 +286,7 @@ export const ChatBot = () => {
                   )}>
                     {displayContent && <span>{displayContent}</span>}
                     
-                    {/* Visual indicators for tools */}
+                    {/* Indicadores visuales para las herramientas */}
                     {m.toolInvocations?.map((ti: any) => {
                       const isExecuting = ti.state === 'call';
                       const toolName = ti.toolName;
@@ -332,7 +332,7 @@ export const ChatBot = () => {
             )}
           </div>
 
-          {/* Input */}
+          {/* Entrada (Input) */}
           <form 
             onSubmit={handleSubmit}
             className="p-4 bg-white/5 border-t border-white/10 flex gap-2"

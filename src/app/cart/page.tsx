@@ -53,7 +53,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="rounded-2xl bg-linear-to-b from-slate-900/70 to-slate-950/70 ring-1 ring-white/10 shadow-2xl shadow-black/40 overflow-hidden">
-            {/* Header */}
+            {/* Encabezado (Header) */}
             <div className="hidden md:grid grid-cols-12 px-6 py-4 border-b border-white/5 text-sm text-muted-foreground">
               <div className="col-span-8">Evento</div>
               <div className="col-span-2 text-center">Precio</div>
@@ -133,12 +133,12 @@ export default function CartPage() {
 
                   </div>
 
-                  {/* Price */}
+                  {/* Precio (Price) */}
                   <div className="md:col-span-2 text-center font-semibold text-primary">
                     ${(item.price * item.quantity).toFixed(2)}
                   </div>
 
-                  {/* Remove */}
+                  {/* Eliminar (Remove) */}
                   <div className="md:col-span-2 text-center">
                     <button
                       onClick={() => removeFromCart(item.id)}

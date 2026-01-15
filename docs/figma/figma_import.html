@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketLive - Figma Export</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #09090b;
+            --primary: #8b5cf6;
+            --accent: #d946ef;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: #fafafa;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.15) 0%, rgba(9, 9, 11, 0) 70%);
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- Figma Container (1440px Canvas) -->
+    <div class="max-w-[1440px] mx-auto min-h-screen relative">
+        
+        <!-- Navigation Simulation -->
+        <nav class="flex items-center justify-between px-12 py-8 bg-black/20 backdrop-blur-md sticky top-0 z-50 border-b border-white/5">
+            <div class="text-2xl font-extrabold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500">
+                TICKETLIVE
+            </div>
+            <div class="hidden md:flex gap-8 text-sm font-medium text-slate-300">
+                <a href="#" class="hover:text-white transition">Conciertos</a>
+                <a href="#" class="hover:text-white transition">Deportes</a>
+                <a href="#" class="hover:text-white transition">Festivales</a>
+                <a href="#" class="hover:text-white transition">Teatro</a>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="text-sm font-medium text-slate-300 px-4 py-2">Ingresar</button>
+                <button class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-500/20 text-sm">
+                    Registrarse
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header class="relative pt-20 pb-32 px-12 text-center hero-gradient">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-purple-400 mb-8 tracking-wider uppercase">
+                ✨ Nueva Temporada 2026
+            </div>
+            <h1 class="text-7xl md:text-8xl font-black mb-6 tracking-tight leading-[0.9]">
+                VIVE LA MÚSICA <br/>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-500 to-fuchsia-400">EN VIVO</span>
+            </h1>
+            <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-12">
+                Descubre los mejores eventos, conciertos y experiencias exclusivas. Tu entrada al mundo del entretenimiento comienza aquí.
+            </p>
+            <div class="flex justify-center gap-4">
+                <button class="bg-white text-black px-10 py-4 rounded-2xl font-extrabold text-lg hover:bg-slate-200 transition">
+                    Explorar Eventos
+                </button>
+                <button class="glass-card px-10 py-4 rounded-2xl font-bold text-lg hover:bg-white/10 transition">
+                    Ver Ofertas VIP
+                </button>
+            </div>
+        </header>
+
+        <!-- Event Grid Example -->
+        <section class="px-12 py-20">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <h2 class="text-4xl font-bold mb-2">Eventos Destacados</h2>
+                    <p class="text-slate-400">No te pierdas de lo más buscado esta semana</p>
+                </div>
+                <button class="text-purple-400 font-bold hover:underline">Ver todos</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Card 1 -->
+                <div class="glass-card rounded-[32px] overflow-hidden group border border-white/5 flex flex-col h-full">
+                    <div class="h-[280px] bg-slate-800 relative">
+                        <!-- Placeholder Image -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                        <div class="absolute top-4 left-4 bg-purple-600 text-[10px] font-black uppercase px-3 py-1 rounded-full">AGOTÁNDOSE</div>
+                    </div>
+                    <div class="p-8 flex flex-col flex-grow">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="text-purple-400 font-bold text-sm">ELECTRÓNICA</span>
+                            <span class="text-slate-400 text-sm">24 MAY</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4 leading-tight group-hover:text-purple-300 transition">Ultra Music Festival 2026</h3>
+                        <p class="text-slate-400 text-sm mb-8 line-clamp-2">Tres días de pura energía con los mejores DJs del mundo en la costa de Miami.</p>
+                        <div class="mt-auto flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-500 block">Desde</span>
+                                <span class="text-xl font-black text-white">$149.00</span>
+                            </div>
+                            <button class="bg-white/10 hover:bg-white/20 p-4 rounded-2xl transition">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2 (Empty mockup) -->
+                <div class="glass-card rounded-[32px] border-dashed border-2 border-white/10 flex items-center justify-center h-full min-h-[500px]">
+                    <span class="text-slate-500 font-medium">Espacio para Card 2</span>
+                </div>
+
+                <!-- Card 3 (Empty mockup) -->
+                <div class="glass-card rounded-[32px] border-dashed border-2 border-white/10 flex items-center justify-center h-full min-h-[500px]">
+                    <span class="text-slate-500 font-medium">Espacio para Card 3</span>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+</body>
+</html>

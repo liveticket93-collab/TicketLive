@@ -3,9 +3,9 @@ import { streamText } from 'ai';
 import { createChatbotTools } from '@/lib/chatbot-tools'; // Import factory function
 import { cookies } from 'next/headers'; // Import cookies
 
-// Force dynamic to ensure fresh data
+// Forzar dinámico para asegurar datos frescos
 export const dynamic = 'force-dynamic';
-// Using Gemini 2.0 Flash - Latest model optimized for efficiency and performance
+// Usando Gemini 2.0 Flash - Último modelo optimizado para eficiencia y rendimiento
 
 // Función para generar respuesta mock en desarrollo
 // Simula el formato de stream del AI SDK: "0:" seguido de JSON con el texto incremental
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
         console.log('Chat API called (Groq). API Key present:', !!apiKey, 'Logged In:', isLoggedIn);
         console.log('Messages count:', messages?.length || 0);
 
-        // Get cookies for authenticated requests
+        // Obtener cookies para solicitudes autenticadas
         const cookieStore = await cookies();
         const cookieHeader = cookieStore.toString();
 
@@ -204,7 +204,7 @@ export async function POST(req: Request) {
                 model: groq('llama-3.3-70b-versatile'),
                 system: systemPrompt,
                 messages,
-                tools: createChatbotTools(cookieHeader), // Pass cookies to tools
+                tools: createChatbotTools(cookieHeader), // Pasar cookies a las herramientas
                 maxSteps: 5,
             });
 
@@ -252,7 +252,7 @@ export async function POST(req: Request) {
             body: errorBody
         });
 
-        // Check for API Key errors
+        // Verificar errores de la API Key
         if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
             return new Response(
                 JSON.stringify({
@@ -263,7 +263,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check for Rate Limit errors
+        // Verificar errores de Límite de Tasa (Rate Limit)
         const isRateLimit =
             errorStatus === 429 ||
             errorMessage.toLowerCase().includes('rate limit');
@@ -279,7 +279,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check for invalid request errors
+        // Verificar errores de solicitud inválida
         if (errorStatus === 400) {
             return new Response(
                 JSON.stringify({

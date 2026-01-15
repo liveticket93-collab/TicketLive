@@ -17,7 +17,7 @@ export default async function EventDetails({
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-secondary/30 border border-white/5 hover:border-sidebar-accent/50 transition-all duration-500 hover:shadow-[0_0_50px_-12px_rgba(139,92,246,0.2)] mx-auto my-12">
-      {/* Image Container */}
+      {/* Contenedor de Imagen (Image Container) */}
       <div className="relative h-64 w-full overflow-hidden">
         <Image
           src={event.imageUrl}
@@ -28,7 +28,7 @@ export default async function EventDetails({
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent opacity-80" />
       </div>
 
-      {/* Content */}
+      {/* Contenido (Content) */}
       <div className="relative p-6 -mt-12 space-y-4">
         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 -top-8">
           <Button

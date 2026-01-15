@@ -7,7 +7,7 @@ export function FeaturedEvent() {
     <section className="relative py-12 md:py-24 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="rounded-[3rem] relative overflow-hidden bg-black border border-white/10 shadow-2xl">
-            {/* Background Image with Overlay */}
+            {/* Imagen de fondo con superposición */}
             <div className="absolute inset-0 z-0">
                     <Image 
                     src="https://images.unsplash.com/photo-1533174072545-e8d4aa97edf9?q=80&w=2670&auto=format&fit=crop"
@@ -65,9 +65,9 @@ export function FeaturedEvent() {
                     </div>
                 </div>
 
-                {/* Right side - could be a countdown or artist image. Keeping it simple/empty for design balance or secondary image */}
+                {/* Lado derecho - podría ser una cuenta regresiva o imagen del artista */}
                 <div className="hidden lg:block relative h-full min-h-[400px]">
-                     {/* Decorative Elements */}
+                     {/* Elementos decorativos */}
                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-primary/40 rounded-full blur-[100px] animate-pulse" />
                      <div className="relative z-10 rotate-6 hover:-rotate-3 transition-transform duration-500">
                         <div className="relative aspect-[3/4] w-80 mx-auto rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl">

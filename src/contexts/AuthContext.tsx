@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser(); // runs once when AuthProvider mounts
+    refreshUser(); // se ejecuta una vez cuando el AuthProvider se monta
   }, [refreshUser]);
 
   /*
