@@ -11,6 +11,13 @@ import {
   showSuccessMessage,
   showErrorMessage,
 } from "@/utils/dashboard.helpers";
+import {
+  validateFullName,
+  validatePhone,
+  validateAddress,
+  validateBirthday,
+  validateProfileForm,
+} from "@/utils/profile.validators";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading, updateUser } = useAuth();
@@ -20,6 +27,7 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     name: "",
@@ -61,20 +69,73 @@ export default function DashboardPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Validar en tiempo real
+    if (value.trim() === "") {
+      // Si está vacío, limpiar el error
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+      return;
+    }
+
+    // Validar según el campo
+    let validation;
+    switch (name) {
+      case "name":
+        validation = validateFullName(value);
+        break;
+      case "phone":
+        validation = validatePhone(value);
+        break;
+      case "address":
+        validation = validateAddress(value);
+        break;
+      case "birthday":
+        validation = validateBirthday(value);
+        break;
+      default:
+        return;
+    }
+
+    // Actualizar errores
+    if (!validation.isValid) {
+      setErrors((prev) => ({ ...prev, [name]: validation.error! }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
 
-      // Guardar en el backend
-      await updateUserProfile(user.id, formData);
+      // Validar todos los campos
+      const validation = validateProfileForm(formData);
+      
+      if (!validation.isValid) {
+        setErrors(validation.errors);
+        showErrorMessage(
+          "Errores en el formulario",
+          "Por favor, corrige los errores antes de guardar"
+        );
+        setIsSaving(false);
+        return;
+      }
 
-      // Actualizar en localStorage y estado
+      // Si todo es válido, guardar
+      await updateUserProfile(user.id, formData);
       updateUser(formData);
 
       showSuccessMessage("¡Perfil actualizado!", "Tus datos se han guardado correctamente");
       setIsEditing(false);
+      setErrors({});
     } catch (error) {
       console.error("Error saving profile:", error);
       showErrorMessage("Error", "No se pudo actualizar el perfil. Inténtalo de nuevo.");
@@ -209,8 +270,14 @@ export default function DashboardPage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="Ej: Juan Pérez"
+                    className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      errors.name ? "border-red-500 focus:border-red-500" : "border-zinc-600 focus:border-purple-500"
+                    }`}
                   />
+                  {errors.name && (
+                    <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -241,8 +308,13 @@ export default function DashboardPage() {
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     placeholder="Ej: +54 351 123 4567"
-                    className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      errors.phone ? "border-red-500 focus:border-red-500" : "border-zinc-600 focus:border-purple-500"
+                    }`}
                   />
+                  {errors.phone && (
+                    <p className="text-red-400 text-sm mt-1">{errors.phone}</p>
+                  )}
                 </div>
 
                 <div>
@@ -255,8 +327,14 @@ export default function DashboardPage() {
                     value={formData.birthday}
                     onChange={handleInputChange}
                     disabled={!isEditing}
-                    className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    max={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                      errors.birthday ? "border-red-500 focus:border-red-500" : "border-zinc-600 focus:border-purple-500"
+                    }`}
                   />
+                  {errors.birthday && (
+                    <p className="text-red-400 text-sm mt-1">{errors.birthday}</p>
+                  )}
                 </div>
               </div>
 
@@ -272,8 +350,13 @@ export default function DashboardPage() {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   placeholder="Ej: Av. Colón 123, Villa Carlos Paz"
-                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
+                    errors.address ? "border-red-500 focus:border-red-500" : "border-zinc-600 focus:border-purple-500"
+                  }`}
                 />
+                {errors.address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.address}</p>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -297,6 +380,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => {
                         setIsEditing(false);
+                        setErrors({});
                         setFormData({
                           name: user.name || "",
                           email: user.email || "",
