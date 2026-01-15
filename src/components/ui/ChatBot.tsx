@@ -2,26 +2,139 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "ai/react";
-import { MessageSquare, X, Send, Bot, User, Loader2, AlertCircle } from "lucide-react";
+import { MessageSquare, X, Send, Bot, User, Loader2, AlertCircle, ShoppingCart, Search, Info, Package } from "lucide-react";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { cn } from "@/utils/cn";
 import { toast } from "sonner";
+import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
+import IEvent from "@/interfaces/event.interface";
 
 export const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { addToCart, removeFromCart } = useCart();
+  const { isLoggedIn } = useAuth();
   
+  // Ref para evitar procesar la misma acción de herramienta múltiples veces
+  const processedToolInvocationsRef = useRef<Set<string>>(new Set());
+
   const { messages, append, isLoading, error } = useChat({
     api: '/api/chat',
+    body: {
+      isLoggedIn,
+    },
+    maxSteps: 5,
     onError: (error: Error) => {
       console.error('Chat error:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      
+      let errorMessage = error.message || 'No se pudo enviar el mensaje';
+      
+      // Intentar parsear el mensaje de error si es JSON
+      try {
+        const parsed = JSON.parse(errorMessage);
+        if (parsed?.error) {
+          errorMessage = parsed.error;
+        }
+      } catch {
+        // Si falla el parseo, usamos el mensaje original
+      }
+      
+      // Si el mensaje es muy genérico, dar más contexto
+      if (errorMessage === 'An error occurred' || errorMessage === 'Error') {
+        errorMessage = 'Error al conectar con el servidor. Por favor, verifica tu conexión y que el servidor esté funcionando.';
+      }
+      
       toast.error('Error en el chat', {
-        description: error.message || 'No se pudo enviar el mensaje'
+        description: errorMessage,
+        duration: 5000,
       });
     },
   });
+
+  // Limpiar el SET de IDs procesados cuando se cierra el chat
+  useEffect(() => {
+    if (!isOpen) {
+      processedToolInvocationsRef.current.clear();
+    }
+  }, [isOpen]);
+
+  // Limpiar mensajes antiguos si hay demasiados para evitar problemas de rendimiento
+  useEffect(() => {
+    if (messages.length > 50) {
+       if (processedToolInvocationsRef.current.size > 100) {
+         processedToolInvocationsRef.current.clear();
+       }
+    }
+  }, [messages.length]);
+
+  // Manejar efectos secundarios de las herramientas (como actualizar el carrito)
+  useEffect(() => {
+    messages.forEach((m: any) => {
+      if (m.toolInvocations) {
+        m.toolInvocations.forEach((ti: any) => {
+          if (ti.state === 'result') {
+            const key = ti.toolCallId;
+            if (processedToolInvocationsRef.current.has(key)) return;
+            processedToolInvocationsRef.current.add(key);
+
+            try {
+              const result = typeof ti.result === 'string' ? JSON.parse(ti.result) : ti.result;
+              
+              if (!result.success) {
+                if (result.error?.toLowerCase().includes('sesión') || result.error?.toLowerCase().includes('autenticado')) {
+                  toast.error("Acción requerida", {
+                    description: "Debes iniciar sesión para realizar esta acción.",
+                  });
+                }
+                return;
+              }
+
+              if (ti.toolName === 'addToCart' && result.event) {
+                if (!isLoggedIn) {
+                  toast.error("Inicia sesión", {
+                    description: "Necesitas estar autenticado para agregar productos al carrito.",
+                  });
+                  return;
+                }
+
+                const event: IEvent = {
+                  id: result.event.id,
+                  title: result.event.title,
+                  description: result.event.description || '',
+                  date: new Date(result.event.date || Date.now()),
+                  start_time: result.event.start_time || '',
+                  location: result.event.location || '',
+                  capacity: result.event.capacity || 0,
+                  price: result.event.price || 0,
+                  imageUrl: result.event.imageUrl || '',
+                  status: result.event.status ?? true,
+                  categoryId: result.event.categoryId || '',
+                };
+
+                const quantity = result.quantity || 1;
+                for (let i = 0; i < quantity; i++) {
+                  addToCart(event);
+                }
+                toast.success(`¡${quantity} entrada(s) agregada(s) al carrito!`);
+              }
+
+              if (ti.toolName === 'removeFromCart' && result.eventId) {
+                removeFromCart(result.eventId);
+                toast.success('Evento eliminado del carrito');
+              }
+            } catch (e) {
+              console.error('Error procesando resultado de herramienta:', e);
+            }
+          }
+        });
+      }
+    });
+  }, [messages, addToCart, removeFromCart, isLoggedIn]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -34,10 +147,20 @@ export const ChatBot = () => {
     const currentInput = input;
     setInput(""); // Limpiar antes de enviar para una mejor UX
 
-    await append({
-      role: 'user',
-      content: currentInput,
-    });
+    try {
+      await append({
+        role: 'user',
+        content: currentInput,
+      });
+    } catch (err) {
+      console.error('Error in handleSubmit:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al enviar el mensaje';
+      toast.error('Error al enviar mensaje', {
+        description: errorMessage
+      });
+      // Restaurar el input si falla
+      setInput(currentInput);
+    }
   };
 
   // Auto-scroll al fondo cuando llegan mensajes
@@ -84,46 +207,122 @@ export const ChatBot = () => {
             {error && (
               <div className="p-3 mx-2 mb-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error.message || 'Error al conectar con el asistente'}</span>
+                <span>{(() => {
+                  try {
+                    const parsed = JSON.parse(error.message);
+                    return parsed?.error || error.message;
+                  } catch {
+                    return error.message || 'Error al conectar con el asistente';
+                  }
+                })()}</span>
               </div>
             )}
             
             {messages.length === 0 && (
               <div className="text-center mt-10">
                 <Bot className="w-12 h-12 text-primary/30 mx-auto mb-4" />
-                <p className="text-muted-foreground text-sm px-8">
-                  ¡Hola! Soy tu asistente de TicketLive. ¿En qué puedo ayudarte hoy?
+                <p className="text-white font-semibold text-sm mb-2">
+                  ¡Hola! Soy tu asistente de TicketLive 🎉
                 </p>
+                <p className="text-muted-foreground text-xs px-8 mb-4">
+                  Puedo ayudarte a encontrar eventos, consultar detalles, ver categorías y recomendar experiencias increíbles.
+                </p>
+                
+                {/* Quick Action Buttons */}
+                <div className="flex flex-col gap-2 px-4 mt-6">
+                  <button
+                    onClick={() => {
+                      setInput("¿Qué eventos hay disponibles?");
+                    }}
+                    className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors text-left"
+                  >
+                    🎭 Ver eventos disponibles
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInput("¿Qué categorías de eventos tienen?");
+                    }}
+                    className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors text-left"
+                  >
+                    📂 Explorar categorías
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInput("¿Qué eventos me recomiendas?");
+                    }}
+                    className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors text-left"
+                  >
+                    ⭐ Eventos recomendados
+                  </button>
+                </div>
               </div>
             )}
             
-            {messages.map((m: { id: string; role: string; content: string }) => (
-              <div
-                key={m.id}
-                className={cn(
-                  "flex items-start gap-2 max-w-[85%]",
-                  m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
-                )}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border",
-                  m.role === "user" 
-                    ? "bg-primary/20 border-primary/30" 
-                    : "bg-zinc-800 border-white/10"
-                )}>
-                  {m.role === "user" ? <User className="w-4 h-4 text-primary" /> : <Bot className="w-4 h-4 text-primary" />}
+            {messages.map((m: any) => {
+              const displayContent = m.content;
+
+              return (
+                <div
+                  key={m.id}
+                  className={cn(
+                    "flex items-start gap-2 max-w-[85%]",
+                    m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                  )}
+                >
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border",
+                    m.role === "user" 
+                      ? "bg-primary/20 border-primary/30" 
+                      : "bg-zinc-800 border-white/10"
+                  )}>
+                    {m.role === "user" ? <User className="w-4 h-4 text-primary" /> : <Bot className="w-4 h-4 text-primary" />}
+                  </div>
+                  
+                  <div className={cn(
+                    "p-3 rounded-2xl text-sm",
+                    m.role === "user"
+                      ? "bg-primary text-white"
+                      : "bg-white/5 border border-white/10 text-zinc-100"
+                  )}>
+                    {displayContent && <span>{displayContent}</span>}
+                    
+                    {/* Visual indicators for tools */}
+                    {m.toolInvocations?.map((ti: any) => {
+                      const isExecuting = ti.state === 'call';
+                      const toolName = ti.toolName;
+                      
+                      let ToolIcon = Package;
+                      let statusText = isExecuting ? `Ejecutando ${toolName}...` : `${toolName} completado`;
+
+                      if (toolName === 'addToCart' || toolName === 'removeFromCart') {
+                        ToolIcon = ShoppingCart;
+                        statusText = isExecuting ? "Actualizando carrito..." : "Carrito actualizado ✓";
+                      } else if (toolName === 'searchEvents') {
+                        ToolIcon = Search;
+                        statusText = isExecuting ? "Buscando eventos..." : "Búsqueda finalizada";
+                      } else if (toolName === 'getEventDetails') {
+                        ToolIcon = Info;
+                        statusText = isExecuting ? "Obteniendo detalles..." : "Detalles cargados";
+                      }
+
+                      return (
+                        <div key={ti.toolCallId} className={cn(
+                          "mt-2 pt-2 border-t border-white/10 flex items-center gap-2 text-[10px]",
+                          isExecuting ? "text-primary animate-pulse" : "text-green-400"
+                        )}>
+                          {isExecuting ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <ToolIcon className="w-3 h-3" />
+                          )}
+                          <span>{statusText}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                
-                <div className={cn(
-                  "p-3 rounded-2xl text-sm",
-                  m.role === "user"
-                    ? "bg-primary text-white"
-                    : "bg-white/5 border border-white/10 text-zinc-100"
-                )}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             
             {isLoading && (
               <div className="flex items-center gap-2 text-muted-foreground">

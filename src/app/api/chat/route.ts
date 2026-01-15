@@ -1,99 +1,302 @@
-import OpenAI from 'openai';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import { createChatbotTools } from '@/lib/chatbot-tools'; // Import factory function
+import { cookies } from 'next/headers'; // Import cookies
 
-// Validate OpenAI API Key
-if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not configured in environment variables');
-}
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Force dynamic to ensure fresh data if we add logic later
+// Force dynamic to ensure fresh data
 export const dynamic = 'force-dynamic';
+// Using Gemini 2.0 Flash - Latest model optimized for efficiency and performance
+
+// Función para generar respuesta mock en desarrollo
+// Simula el formato de stream del AI SDK: "0:" seguido de JSON con el texto incremental
+// Función para generar respuesta mock en desarrollo
+// Función para generar respuesta mock en desarrollo
+function createMockResponse(userMessage: string, isLoggedIn: boolean): ReadableStream {
+    const lowerMessage = userMessage.toLowerCase();
+    const encoder = new TextEncoder();
+
+    return new ReadableStream({
+        async start(controller) {
+            const sendText = (text: string) => {
+                controller.enqueue(encoder.encode(`0:${JSON.stringify(text)}\n`));
+            };
+            const sendToolCall = (id: string, name: string, args: any) => {
+                controller.enqueue(encoder.encode(`9:${JSON.stringify({ toolCallId: id, toolName: name, args })}\n`));
+            };
+            const sendToolResult = (id: string, result: any) => {
+                controller.enqueue(encoder.encode(`a:${JSON.stringify({ toolCallId: id, result: JSON.stringify(result) })}\n`));
+            };
+
+            try {
+                // 1. Saludos
+                if (lowerMessage.match(/\b(hola|buen|buenas|hi|hello)\b/)) {
+                    sendText("¡Hola! Soy tu asistente virtual de TicketLive. ¿Buscas algún evento en especial o quieres ver tu carrito?");
+                }
+                // 2. Búsqueda de eventos
+                else if (lowerMessage.match(/\b(concierto|evento|show|teatro|deporte|partido|entradas|tickets)\b/) || lowerMessage.includes('buscar')) {
+                    // Intento muy básico de extraer el término de búsqueda
+                    let searchTerm = 'evento';
+                    if (lowerMessage.includes('rock')) searchTerm = 'rock';
+                    else if (lowerMessage.includes('pop')) searchTerm = 'pop';
+                    else if (lowerMessage.includes('teatro')) searchTerm = 'teatro';
+
+                    const toolId = `call_${Date.now()}`;
+                    sendToolCall(toolId, 'searchEvents', { title: searchTerm });
+
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    const mockEvents = [
+                        { id: 101, title: 'Festival de Rock 2024', price: 150, location: 'Estadio Nacional', date: '2024-11-20' },
+                        { id: 102, title: 'Orquesta Sinfónica', price: 80, location: 'Teatro Municipal', date: '2024-12-05' }
+                    ];
+
+                    sendToolResult(toolId, {
+                        success: true,
+                        count: 2,
+                        events: mockEvents
+                    });
+
+                    sendText(`He encontrado algunos eventos que podrían interesarte. El "Festival de Rock" se ve genial. ¿Quieres más detalles?`);
+                }
+                // 3. Agregar al carrito
+                else if (lowerMessage.match(/\b(agreg[aá]r?|añad[ií]r?|comprar?|quiero ir)\b/)) {
+                    if (!isLoggedIn) {
+                        sendText("Para comprar entradas, necesitas iniciar sesión primero. ¿Tienes cuenta?");
+                    } else {
+                        const toolId = `call_${Date.now()}`;
+                        sendToolCall(toolId, 'addToCart', { eventId: 101, quantity: 1 });
+
+                        await new Promise(r => setTimeout(r, 1000));
+
+                        sendToolResult(toolId, {
+                            success: true,
+                            action: 'addToCart',
+                            event: { id: 101, title: 'Festival de Rock 2024', price: 150 },
+                            quantity: 1,
+                            message: "Entrada agregada al carrito exitosamente."
+                        });
+
+                        sendText("¡Listo! He agregado una entrada para el Festival de Rock a tu carrito.");
+                    }
+                }
+                // 4. Ver carrito
+                else if (lowerMessage.match(/\b(carrito|cesta|mis compras)\b/) && !lowerMessage.match(/\b(agreg[aá]r?|añad[ií]r?)\b/)) {
+                    if (!isLoggedIn) {
+                        sendText("Inicia sesión para ver tu carrito.");
+                    } else {
+                        const toolId = `call_${Date.now()}`;
+                        sendToolCall(toolId, 'getCart', {});
+                        await new Promise(r => setTimeout(r, 800));
+                        sendToolResult(toolId, {
+                            success: true,
+                            cart: { items: [{ id: 'item_1', eventId: 101, quantity: 1, event: { title: 'Festival de Rock 2024', price: 150 } }] }
+                        });
+                        sendText("Tienes una entrada para el Festival de Rock en tu carrito.");
+                    }
+                }
+                // Default
+                else {
+                    sendText("Entiendo. Puedes preguntarme por eventos, buscar conciertos, o gestionar tu carrito de compras.");
+                }
+            } catch (e) {
+                console.error("Mock error", e);
+                sendText("Lo siento, tuve un error interno simulado.");
+            } finally {
+                controller.enqueue(encoder.encode(`d:{"finishReason":"stop"}\n`));
+                controller.close();
+            }
+        }
+    });
+}
 
 export async function POST(req: Request) {
     try {
-        // Validate request body
-        let body;
-        try {
-            body = await req.json();
-        } catch {
+        const body = await req.json();
+        const { messages, isLoggedIn } = body;
+
+        // Validar que messages sea un array
+        if (!Array.isArray(messages)) {
             return new Response(
-                JSON.stringify({ error: 'Invalid JSON in request body' }),
+                JSON.stringify({
+                    error: 'Formato de mensajes inválido. Se espera un array de mensajes.',
+                    type: 'validation_error'
+                }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        const { messages } = body;
+        // MODO MOCK: Activo en desarrollo cuando:
+        // 1. USE_CHAT_MOCK=true está configurado, O
+        // 2. No hay API key configurada (para desarrollo sin credenciales)
+        // Esto evita llamadas innecesarias a la API real durante desarrollo
+        const useMock = process.env.NODE_ENV === 'development' &&
+            (process.env.USE_CHAT_MOCK === 'true' || !process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
-        // Validate messages array
-        if (!messages || !Array.isArray(messages)) {
+        if (useMock) {
+            const lastMessage = messages[messages.length - 1];
+            const userMessage = lastMessage?.content || '';
+
+            console.log('🤖 [MOCK MODE] Chat API called with mock tools');
+            console.log('User message:', userMessage, '| Logged In:', isLoggedIn);
+
+            return new Response(createMockResponse(userMessage, !!isLoggedIn), {
+                headers: {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'X-Mock-Response': 'true',
+                },
+            });
+        }
+
+        const apiKey = process.env.GROQ_API_KEY;
+
+        // Validar que la API key esté presente
+        if (!apiKey) {
+            console.error('Groq API Key not found in environment variables');
             return new Response(
-                JSON.stringify({ error: 'Messages must be an array' }),
-                { status: 400, headers: { 'Content-Type': 'application/json' } }
+                JSON.stringify({
+                    error: 'La configuración del servicio de IA (Groq) no está completa.',
+                    type: 'configuration_error'
+                }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // System prompt configuration
-        const systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam = {
-            role: 'system',
-            content: `Eres el asistente oficial de TicketLive. 
-Tu objetivo es ayudar a los usuarios a encontrar eventos, conciertos y festivales.
-Sé amable, servicial y utiliza un tono moderno y profesional.
-Por ahora, si te preguntan por eventos específicos que no conoces, diles que no puedes consultar la base de datos en tiempo real en este momento, pero que pueden buscar en la página principal.`,
+        console.log('Chat API called (Groq). API Key present:', !!apiKey, 'Logged In:', isLoggedIn);
+        console.log('Messages count:', messages?.length || 0);
+
+        // Get cookies for authenticated requests
+        const cookieStore = await cookies();
+        const cookieHeader = cookieStore.toString();
+
+        // Manejador de errores personalizado para obtener mensajes detallados
+        const errorHandler = (error: unknown): string => {
+            if (error == null) {
+                return 'Error desconocido';
+            }
+            if (typeof error === 'string') {
+                return error;
+            }
+            if (error instanceof Error) {
+                console.error('Stream error details:', {
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack
+                });
+                return error.message;
+            }
+            return JSON.stringify(error);
         };
 
-        // Filter out any existing system messages and prepend our system message
-        const conversationMessages = messages.filter((m: OpenAI.Chat.ChatCompletionMessageParam) => m.role !== 'system');
-        const allMessages = [systemMessage, ...conversationMessages];
+        try {
+            // Usar Groq Llama 3.1
+            const systemPrompt = `Eres el asistente oficial de TicketLive. Puedes ayudar a los usuarios a buscar eventos, ver detalles, agregar eventos al carrito y más. Usa las herramientas disponibles cuando sea necesario.
+            ${isLoggedIn
+                    ? 'El usuario está actualmente AUTENTICADO.'
+                    : 'El usuario NO está autenticado. Si desea agregar algo al carrito, infórmale amablemente que debe iniciar sesión para completar la acción.'}`;
 
-        // API Call to OpenAI
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            stream: true,
-            messages: allMessages,
+            // Configurar cliente Groq
+            const groq = createOpenAI({
+                baseURL: 'https://api.groq.com/openai/v1',
+                apiKey: apiKey,
+            });
+
+            const result = await streamText({
+                model: groq('llama-3.3-70b-versatile'),
+                system: systemPrompt,
+                messages,
+                tools: createChatbotTools(cookieHeader), // Pass cookies to tools
+                maxSteps: 5,
+            });
+
+            console.log('Response object created. Returning stream...');
+            return result.toDataStreamResponse({
+                getErrorMessage: errorHandler,
+            });
+        } catch (streamError: unknown) {
+            // Capturar errores específicos del stream
+            const streamErrorMessage = streamError instanceof Error ? streamError.message : String(streamError);
+            console.error('Error in streamText:', streamErrorMessage);
+            console.error('Stream error details:', streamError);
+
+            // Si el error es de autenticación o configuración, devolverlo como JSON
+            if (streamErrorMessage.includes('API key') ||
+                streamErrorMessage.includes('authentication') ||
+                streamErrorMessage.includes('401') ||
+                streamErrorMessage.includes('403')) {
+                return new Response(
+                    JSON.stringify({
+                        error: 'Error de autenticación con el servicio de IA. Por favor, verifica tu API key.',
+                        type: 'authentication_error'
+                    }),
+                    { status: 401, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+
+            // Re-lanzar el error para que sea manejado por el catch externo
+            throw streamError;
+        }
+    } catch (error: unknown) {
+        // Extraer información del error de forma segura
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorObj = error as { status?: number; statusCode?: number; responseBody?: unknown; body?: unknown };
+        const errorStatus = errorObj?.status || errorObj?.statusCode;
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+        const errorBody = errorObj?.responseBody || errorObj?.body;
+
+        console.error('Chat API Error details:', {
+            message: errorMessage,
+            status: errorStatus,
+            name: errorName,
+            provider: 'google',
+            stack: error instanceof Error ? error.stack : undefined,
+            body: errorBody
         });
 
-        // Convert the response into a friendly text-stream
-        // Type assertion needed due to OpenAI SDK response type compatibility
-        const stream = OpenAIStream(response as Parameters<typeof OpenAIStream>[0]);
-
-        // Respond with the stream
-        return new StreamingTextResponse(stream);
-    } catch (error) {
-        console.error('Error in chat route:', error);
-        
-        // Improved error handling with specific error types
-        let errorMessage = 'Error al procesar tu solicitud';
-        let statusCode = 500;
-        
-        if (error instanceof Error) {
-            if (error.message.includes('API key') || error.message.includes('authentication')) {
-                errorMessage = 'Error de configuración del servidor. Por favor contacta al soporte.';
-                statusCode = 500;
-            } else if (error.message.includes('rate limit')) {
-                errorMessage = 'Demasiadas solicitudes. Por favor intenta más tarde.';
-                statusCode = 429;
-            } else if (error.message.includes('network') || error.message.includes('fetch')) {
-                errorMessage = 'Error de conexión. Por favor verifica tu internet.';
-                statusCode = 503;
-            } else {
-                errorMessage = error.message;
-            }
+        // Check for API Key errors
+        if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+            return new Response(
+                JSON.stringify({
+                    error: 'Error de autenticación con el servicio de IA. Por favor, verifica la configuración.',
+                    type: 'authentication_error'
+                }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
+            );
         }
-        
+
+        // Check for Rate Limit errors
+        const isRateLimit =
+            errorStatus === 429 ||
+            errorMessage.toLowerCase().includes('rate limit');
+
+        if (isRateLimit) {
+            console.warn('Google/Provider Rate Limit Exceeded:', errorMessage);
+            return new Response(
+                JSON.stringify({
+                    error: 'El servicio de IA (Google Gemini) está saturado momentáneamente. Por favor, intenta de nuevo en unos minutos.',
+                    type: 'rate_limit_error'
+                }),
+                { status: 429, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        // Check for invalid request errors
+        if (errorStatus === 400) {
+            return new Response(
+                JSON.stringify({
+                    error: 'Solicitud inválida. Por favor, verifica tu mensaje e intenta de nuevo.',
+                    type: 'invalid_request_error'
+                }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
         return new Response(
-            JSON.stringify({ 
-                error: errorMessage,
-                type: 'chat_error'
+            JSON.stringify({
+                error: errorMessage || 'Error al procesar tu solicitud. Por favor intenta de nuevo.',
+                type: 'chat_error',
+                details: process.env.NODE_ENV === 'development' ? String(error) : undefined
             }),
-            { 
-                status: statusCode,
-                headers: { 'Content-Type': 'application/json' } 
-            }
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
 }
