@@ -2,7 +2,7 @@
 
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-// import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -44,7 +44,9 @@ export default function CartPage() {
         {/* Carro Vacío */}
         {cartItems.length === 0 ? (
           <div className="rounded-2xl bg-linear-to-b from-slate-900/70 to-slate-950/70 ring-1 ring-white/10 p-16 text-center">
-            <p className="text-xl font-medium mb-2">Tu carrito está vacío</p>
+            <p className="text-xl font-medium mb-2">
+              Tu carrito está vacío
+            </p>
             <p className="text-muted-foreground">
               Agrega tus eventos favoritos para comenzar tu experiencia
             </p>
@@ -60,7 +62,7 @@ export default function CartPage() {
 
             {/* Productos */}
             <div className="divide-y divide-white/5">
-              {cartItems.map((item) => (
+              {cartItems.map(item => (
                 <div
                   key={item.id}
                   className="grid grid-cols-1 md:grid-cols-12 gap-6 px-6 py-6 items-center"
@@ -68,7 +70,7 @@ export default function CartPage() {
                   {/* Producto */}
                   <div className="md:col-span-8 flex gap-4 items-center">
                     <div className="w-28 h-28 rounded-xl bg-secondary flex items-center justify-center overflow-hidden">
-                      {item.imageUrl ? (
+                      {item.image ? (
                         // <Image
                         //   src={item.image}
                         //   alt={item.name}
@@ -79,10 +81,11 @@ export default function CartPage() {
 
                         //Quitar esto cuando se deje de usar el mock:
                         <img
-                          src={item.imageUrl}
-                          alt={item.title}
+                          src={item.image}
+                          alt={item.name}
                           className="w-28 h-28 object-contain"
                         />
+
                       ) : (
                         <span className="text-muted-foreground text-sm">
                           Sin imagen
@@ -90,7 +93,9 @@ export default function CartPage() {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">{item.title}</h3>
+                      <h3 className="font-semibold text-white">
+                        {item.name}
+                      </h3>
 
                       {item.description && (
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -119,6 +124,13 @@ export default function CartPage() {
                         </button>
                       </div>
                     </div>
+
+
+
+
+
+
+
                   </div>
 
                   {/* Price */}
@@ -168,7 +180,7 @@ export default function CartPage() {
                 ) : (
                   <button
                     onClick={handleProceedToPayment}
-                    className="form-button"
+                    className="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium shadow-lg shadow-purple-500/40"
                   >
                     Procesar la compra
                   </button>

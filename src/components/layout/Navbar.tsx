@@ -47,7 +47,7 @@ export default function Navbar() {
               Inicio
             </Link>
             <Link
-              href="/events"
+              href="/eventos"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Eventos
@@ -69,6 +69,13 @@ export default function Navbar() {
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Testimonios
+            </Link>
+            {/* Este se quita cuando esté el carrito del back */}
+            <Link
+              href="/mockcarrito"
+              className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
+            >
+              Mock Carrito
             </Link>
             {/* Carrito de compras (Se puede modificar después el icono jeje) */}
             <Link
@@ -100,7 +107,7 @@ export default function Navbar() {
                 {/* Logout Button */}
                 <button
                   onClick={logout}
-                  className="form-button"
+                  className="text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-medium transition-all duration-200"
                 >
                   Cerrar sesión
                 </button>
