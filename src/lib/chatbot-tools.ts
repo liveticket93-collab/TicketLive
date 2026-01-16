@@ -121,17 +121,26 @@ export const createChatbotTools = (cookieHeader: string) => {
             parameters: searchEventsSchema,
             execute: async (params) => {
                 const query = new URLSearchParams();
-                if (params.category) query.append('category', params.category);
+
+                // Resolución inteligente de categorías: la API espera ID, el usuario da nombre
+                if (params.category) {
+                    const categories = await fetchAPI('/categories');
+                    if (Array.isArray(categories)) {
+                        const cat = categories.find((c: any) =>
+                            c.name.toLowerCase().includes(params.category!.toLowerCase())
+                        );
+                        if (cat) query.append('category', cat.id);
+                    }
+                }
+
                 if (params.title) query.append('title', params.title);
                 if (params.location) query.append('location', params.location);
-                // No enviamos limit al backend si no lo soporta, o lo manejamos post-fetch
 
                 const data = await fetchAPI(`/events?${query.toString()}`);
                 if (data.error) return JSON.stringify(data);
 
-                // Limitar resultados manualmente si la API no lo hace
                 const limit = safeParseInt(params.limit, 10);
-                const results = Array.isArray(data) ? data.slice(0, limit) : data;
+                const results = Array.isArray(data) ? data.slice(0, limit) : (data.events || []);
 
                 return JSON.stringify({
                     success: true,
@@ -142,7 +151,7 @@ export const createChatbotTools = (cookieHeader: string) => {
                         date: e.date,
                         location: e.location,
                         price: e.price,
-                        available: e.availableTickets !== undefined ? e.availableTickets > 0 : (e.status === true)
+                        available: e.status === true && (e.availableTickets === undefined || e.availableTickets > 0)
                     }))
                 });
             },
@@ -161,7 +170,7 @@ export const createChatbotTools = (cookieHeader: string) => {
 
         // --- CATEGORÍAS ---
         getCategories: tool({
-            description: "Listar categorías de eventos.",
+            description: "Listar categorías de eventos disponibles.",
             parameters: z.object({}).optional(),
             execute: async () => {
                 const data = await fetchAPI('/categories');
@@ -171,7 +180,7 @@ export const createChatbotTools = (cookieHeader: string) => {
 
         // --- CARRITO: VER ---
         getCart: tool({
-            description: "Ver el contenido del carrito de compras.",
+            description: "Ver el contenido actual del carrito de compras del usuario autenticado.",
             parameters: z.object({}).optional(),
             execute: async () => {
                 const data = await fetchAPI('/cart', { headers: authHeaders });
@@ -181,12 +190,18 @@ export const createChatbotTools = (cookieHeader: string) => {
 
         // --- CARRITO: AGREGAR ---
         addToCart: tool({
-            description: "Agregar entradas al carrito.",
+            description: "Agregar entradas de un evento al carrito. Requiere que el usuario esté autenticado.",
             parameters: addToCartSchema,
             execute: async ({ eventId, quantity }) => {
-                const id = safeParseId(eventId);
+                const id = String(safeParseId(eventId));
                 const qty = safeParseInt(quantity, 1);
 
+                // 1. Validación proactiva
+                const event = await fetchAPI(`/events/${id}`);
+                if (event.error) return JSON.stringify({ error: "El evento solicitado no existe." });
+                if (event.status === false) return JSON.stringify({ error: "Este evento no está disponible para la venta actualmente." });
+
+                // 2. Enviar al backend
                 const data = await fetchAPI('/cart/items', {
                     method: 'POST',
                     headers: authHeaders,
@@ -196,7 +211,7 @@ export const createChatbotTools = (cookieHeader: string) => {
                 return JSON.stringify({
                     success: !data.error,
                     action: 'addToCart',
-                    message: data.error ? "Error al agregar" : "Agregado correctamente",
+                    message: data.error ? data.error : "Evento agregado al carrito correctamente",
                     details: data
                 });
             },
@@ -204,22 +219,26 @@ export const createChatbotTools = (cookieHeader: string) => {
 
         // --- CARRITO: ELIMINAR ---
         removeFromCart: tool({
-            description: "Eliminar un evento del carrito.",
+            description: "Eliminar un evento específico del carrito.",
             parameters: removeFromCartSchema,
             execute: async ({ eventId }) => {
                 const eId = safeParseId(eventId);
 
-                // 1. Obtener carrito para encontrar el cartItemId
+                // 1. Obtener carrito para encontrar el cartItemId del evento
                 const cart = await fetchAPI('/cart', { headers: authHeaders });
-                if (cart.error || !cart.items) return JSON.stringify({ error: "No se pudo leer el carrito para eliminar." });
+                if (cart.error || !cart.items) return JSON.stringify({ error: "No se pudo leer el carrito." });
 
-                const item = cart.items.find((i: any) => i.eventId === eId || i.event?.id === eId);
+                // Buscar el item comparando el ID del evento (ICartItem tiene el objeto event)
+                const item = cart.items.find((i: any) =>
+                    i.eventId === eId ||
+                    (i.event && Number(i.event.id) === Number(eId))
+                );
 
                 if (!item) {
-                    return JSON.stringify({ error: `El evento con ID ${eId} no está en el carrito.` });
+                    return JSON.stringify({ error: `El evento no se encuentra en tu carrito.` });
                 }
 
-                // 2. Eliminar usando cartItemId
+                // 2. Eliminar usando el ID del item de carrito (UUID)
                 const result = await fetchAPI(`/cart/items/${item.id}`, {
                     method: 'DELETE',
                     headers: authHeaders
@@ -228,9 +247,10 @@ export const createChatbotTools = (cookieHeader: string) => {
                 return JSON.stringify({
                     success: !result?.error,
                     action: 'removeFromCart',
-                    message: "Eliminado del carrito"
+                    message: result?.error ? result.error : "Evento eliminado del carrito."
                 });
             },
         }),
+
     };
 };

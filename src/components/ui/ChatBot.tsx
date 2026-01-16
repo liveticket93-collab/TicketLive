@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useChat } from "ai/react";
-import { MessageSquare, X, Send, Bot, User, Loader2, AlertCircle, ShoppingCart, Search, Info, Package } from "lucide-react";
+import { MessageSquare, X, Send, Bot, User, Loader2, AlertCircle, ShoppingCart, Search, Info, Package, Trash2 } from "lucide-react";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { cn } from "@/utils/cn";
@@ -21,7 +21,7 @@ export const ChatBot = () => {
   // Ref para evitar procesar la misma acción de herramienta múltiples veces
   const processedToolInvocationsRef = useRef<Set<string>>(new Set());
 
-  const { messages, append, isLoading, error } = useChat({
+  const { messages, append, isLoading, error, setMessages } = useChat({
     api: '/api/chat',
     body: {
       isLoggedIn,
@@ -55,6 +55,38 @@ export const ChatBot = () => {
       });
     },
   });
+
+  // CARGAR historial desde localStorage al montar
+  useEffect(() => {
+    const savedMessages = localStorage.getItem("ticketlive-chat-history");
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.error("Error cargando historial de chat:", e);
+      }
+    }
+  }, [setMessages]);
+
+  // GUARDAR historial cada vez que cambian los mensajes
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("ticketlive-chat-history", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Función para limpiar el historial
+  const clearHistory = () => {
+    if (window.confirm("¿Seguro que quieres borrar todo el historial de chat?")) {
+      setMessages([]);
+      localStorage.removeItem("ticketlive-chat-history");
+      processedToolInvocationsRef.current.clear();
+      toast.success("Historial limpiado correctamente");
+    }
+  };
 
   // Limpiar el SET de IDs procesados cuando se cierra el chat
   useEffect(() => {
@@ -191,12 +223,23 @@ export const ChatBot = () => {
                 <p className="text-[10px] text-primary animate-pulse">En línea ahora</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="text-muted-foreground hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {messages.length > 0 && (
+                <button 
+                  onClick={clearHistory}
+                  title="Limpiar historial"
+                  className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="text-muted-foreground hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Mensajes */}

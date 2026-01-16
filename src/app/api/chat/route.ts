@@ -99,7 +99,7 @@ function createMockResponse(userMessage: string, isLoggedIn: boolean): ReadableS
                     sendText("Entiendo. Puedes preguntarme por eventos, buscar conciertos, o gestionar tu carrito de compras.");
                 }
             } catch (e) {
-                console.error("Mock error", e);
+                console.error("Error en Mock", e);
                 sendText("Lo siento, tuve un error interno simulado.");
             } finally {
                 controller.enqueue(encoder.encode(`d:{"finishReason":"stop"}\n`));
@@ -136,8 +136,8 @@ export async function POST(req: Request) {
             const lastMessage = messages[messages.length - 1];
             const userMessage = lastMessage?.content || '';
 
-            console.log('🤖 [MOCK MODE] Chat API called with mock tools');
-            console.log('User message:', userMessage, '| Logged In:', isLoggedIn);
+            console.log('🤖 [MODO MOCK] API de Chat llamada con herramientas mock');
+            console.log('Mensaje del usuario:', userMessage, '| Sesión iniciada:', isLoggedIn);
 
             return new Response(createMockResponse(userMessage, !!isLoggedIn), {
                 headers: {
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
 
         // Validar que la API key esté presente
         if (!apiKey) {
-            console.error('Groq API Key not found in environment variables');
+            console.error('API Key de Groq no encontrada en las variables de entorno');
             return new Response(
                 JSON.stringify({
                     error: 'La configuración del servicio de IA (Groq) no está completa.',
@@ -161,8 +161,8 @@ export async function POST(req: Request) {
             );
         }
 
-        console.log('Chat API called (Groq). API Key present:', !!apiKey, 'Logged In:', isLoggedIn);
-        console.log('Messages count:', messages?.length || 0);
+        console.log('API de Chat llamada (Groq). API Key presente:', !!apiKey, 'Sesión iniciada:', isLoggedIn);
+        console.log('Conteo de mensajes:', messages?.length || 0);
 
         // Obtener cookies para solicitudes autenticadas
         const cookieStore = await cookies();
@@ -177,7 +177,7 @@ export async function POST(req: Request) {
                 return error;
             }
             if (error instanceof Error) {
-                console.error('Stream error details:', {
+                console.error('Detalles del error de streaming:', {
                     message: error.message,
                     name: error.name,
                     stack: error.stack
@@ -189,10 +189,19 @@ export async function POST(req: Request) {
 
         try {
             // Usar Groq Llama 3.1
-            const systemPrompt = `Eres el asistente oficial de TicketLive. Puedes ayudar a los usuarios a buscar eventos, ver detalles, agregar eventos al carrito y más. Usa las herramientas disponibles cuando sea necesario.
-            ${isLoggedIn
-                    ? 'El usuario está actualmente AUTENTICADO.'
-                    : 'El usuario NO está autenticado. Si desea agregar algo al carrito, infórmale amablemente que debe iniciar sesión para completar la acción.'}`;
+            const systemPrompt = `Eres el asistente virtual experto de TicketLive. Tu objetivo es ayudar a los usuarios a descubrir eventos increíbles y gestionar sus compras sin fricciones.
+
+            REGLAS DE COMPORTAMIENTO:
+            1. BÚSQUEDA: Usa 'searchEvents' para encontrar eventos. Si el usuario pide un género (ej: rock), úsalo como parámetro 'category'.
+            2. DETALLES: Si el usuario muestra interés en un evento, usa 'getEventDetails' para darle información completa (precios, capacidad, etc).
+            3. CARRITO: 
+               - Puedes ver el carrito con 'getCart'.
+               - Para agregar, usa 'addToCart'. 
+               - ${isLoggedIn
+                    ? 'El usuario está AUTENTICADO. Puedes proceder con acciones de carrito.'
+                    : 'El usuario NO está autenticado. SIEMPRE dile que debe iniciar sesión antes de intentar agregar algo al carrito.'}
+            4. TONO: Sé amable, profesional y usa emojis ocasionalmente para mantener la energía del mundo del entretenimiento. ✨`;
+
 
             // Configurar cliente Groq
             const groq = createOpenAI({
@@ -208,15 +217,15 @@ export async function POST(req: Request) {
                 maxSteps: 5,
             });
 
-            console.log('Response object created. Returning stream...');
+            console.log('Objeto de respuesta creado. Devolviendo stream...');
             return result.toDataStreamResponse({
                 getErrorMessage: errorHandler,
             });
         } catch (streamError: unknown) {
             // Capturar errores específicos del stream
             const streamErrorMessage = streamError instanceof Error ? streamError.message : String(streamError);
-            console.error('Error in streamText:', streamErrorMessage);
-            console.error('Stream error details:', streamError);
+            console.error('Error en streamText:', streamErrorMessage);
+            console.error('Detalles del error de streaming:', streamError);
 
             // Si el error es de autenticación o configuración, devolverlo como JSON
             if (streamErrorMessage.includes('API key') ||
@@ -243,7 +252,7 @@ export async function POST(req: Request) {
         const errorName = error instanceof Error ? error.name : 'UnknownError';
         const errorBody = errorObj?.responseBody || errorObj?.body;
 
-        console.error('Chat API Error details:', {
+        console.error('Detalles de error de la API de Chat:', {
             message: errorMessage,
             status: errorStatus,
             name: errorName,
@@ -269,7 +278,7 @@ export async function POST(req: Request) {
             errorMessage.toLowerCase().includes('rate limit');
 
         if (isRateLimit) {
-            console.warn('Google/Provider Rate Limit Exceeded:', errorMessage);
+            console.warn('Límite de tasa de Google/Proveedor excedido:', errorMessage);
             return new Response(
                 JSON.stringify({
                     error: 'El servicio de IA (Google Gemini) está saturado momentáneamente. Por favor, intenta de nuevo en unos minutos.',
