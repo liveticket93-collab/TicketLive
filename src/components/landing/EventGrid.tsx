@@ -1,80 +1,45 @@
-import { useState } from 'react';
-import { EventCard } from './EventCard';
-import { Button } from '@/components/ui/Button';
+"use client";
 
-const FEATURED_EVENTS = [
-  {
-    id: 1,
-    title: "Neon Nights Music Festival 2024",
-    date: "Dec 15, 2024 • 8:00 PM",
-    location: "Miami Arena, FL",
-    price: "$149",
-    image: "https://images.unsplash.com/photo-1616709062048-788acece6a51?q=80&w=1631&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Festival"
-  },
-  {
-    id: 2,
-    title: "The Weekend: After Hours Tour",
-    date: "Jan 20, 2025 • 9:00 PM",
-    location: "SoFi Stadium, CA",
-    price: "$299",
-    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=2670&auto=format&fit=crop",
-    category: "Concert"
-  },
-  {
-    id: 3,
-    title: "Championship Finals: Lakers vs Celtics",
-    date: "Feb 10, 2025 • 7:30 PM",
-    location: "Crypto.com Arena, CA",
-    price: "$450",
-    image: "https://images.unsplash.com/photo-1581049966083-210f169bc2b4?q=80&w=771&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Sports"
-  },
-    {
-    id: 4,
-    title: "Electric Dreams: Cyberpunk Opera",
-    date: "Mar 05, 2025 • 8:00 PM",
-    location: "Sydney Opera House",
-    price: "$120",
-    image: "https://images.unsplash.com/photo-1580809361436-42a7ec204889?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    category: "Theater"
-  },
-    {
-    id: 5,
-    title: "Global Tech Summit 2025",
-    date: "Apr 12, 2025 • 9:00 AM",
-    location: "Silicon Valley, CA",
-    price: "$599",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2670&auto=format&fit=crop",
-    category: "Conference"
-  },
-    {
-    id: 6,
-    title: "Jazz in the Park",
-    date: "May 20, 2025 • 6:00 PM",
-    location: "Central Park, NY",
-    price: "Free",
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=2832&auto=format&fit=crop",
-    category: "Music"
-  }
-];
-
-const CATEGORIES = [
-  { key: "All", label: "Todos" },
-  { key: "Concert", label: "Conciertos" },
-  { key: "Festival", label: "Festivales" },
-  { key: "Sports", label: "Deportes" },
-  { key: "Theater", label: "Teatro" },
-  { key: "Conference", label: "Conferencias" },
-  { key: "Music", label: "Música" }
-];
+import { EventCard } from "./EventCard";
+import { Button } from "@/components/ui/Button";
+import { useEffect, useState } from "react";
+import { getEvents } from "@/services/events.service";
+import IEvent from "@/interfaces/event.interface";
+import { getEventCategories } from "@/services/events.service";
+import { ICategory } from "@/services/events.service";
+import { useSearchParams } from "next/navigation";
 
 export function EventGrid() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [events, setEvents] = useState<IEvent[]>([]);
+  const [categories, setCategories] = useState<ICategory[]>([]);
+  const searchParams = useSearchParams();
+  const q = (searchParams.get("q") ?? "").trim().toLowerCase();
 
-  const filteredEvents = activeCategory === "All" 
-    ? FEATURED_EVENTS 
-    : FEATURED_EVENTS.filter(event => event.category === activeCategory);
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const [fetchedEvents, fetchedCategories] = await Promise.all([
+          getEvents(),
+          getEventCategories(),
+        ]);
+        setEvents(fetchedEvents);
+        setCategories(fetchedCategories);
+      } catch (error) {
+        alert(error);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+  const filteredEvents = (
+    activeCategory === "All"
+      ? events
+      : events.filter((event) => event.categoryId === activeCategory)
+  ).filter((event) => {
+    if (!q) return true;
+    return (event.title ?? "").toLowerCase().includes(q);
+  });
 
   return (
     <section className="py-24 relative">
@@ -98,15 +63,18 @@ export function EventGrid() {
                 ))}
             </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              {...event}
-            />
-          ))}
-        </div>
+
+        {filteredEvents.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-secondary/20 p-8 text-center text-muted-foreground">
+            No se encontraron eventos{q ? ` para “${q}”` : ""}.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredEvents.map((event: IEvent) => (
+              <EventCard key={event.id} {...event} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
