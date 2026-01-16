@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,48 +11,107 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Keep local input synced with URL (back button, manual URL edits, etc.)
+  useEffect(() => {
+    setSearchValue(searchParams.get("q") ?? "");
+  }, [searchParams]);
+
+  // Autofocus when opening
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
+
+  const pushSearchToUrl = (nextValue: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const clean = nextValue.trim();
+
+    if (!clean) params.delete("q");
+    else params.set("q", clean);
+
+    const qs = params.toString();
+
+    // If not on /events, send them there so they see results
+    const target = "/events";
+    router.push(qs ? `${target}?${qs}` : target);
+  };
+
+  const clearSearch = () => {
+    setSearchValue("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("q");
+    const qs = params.toString();
+    router.push(qs ? `/events?${qs}` : "/events");
+  };
 
   // Cerrar menú de usuario al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
 
     if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isUserMenuOpen]);
 
   const handleLogout = () => {
     logout();
     setIsUserMenuOpen(false);
-    router.push('/');
+    router.push("/");
   };
 
   return (
     <nav className="bg-zinc-900 bg-opacity-95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-purple-500 border-opacity-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center space-x-2">
               {/* Icono del ticket SVG */}
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 10V6C22 4.89543 21.1046 4 20 4H4C2.89543 4 2 4.89543 2 6V10C3.10457 10 4 10.8954 4 12C4 13.1046 3.10457 14 2 14V18C2 19.1046 2.89543 20 4 20H20C21.1046 20 22 19.1046 22 18V14C20.8954 14 20 13.1046 20 12C20 10.8954 20.8954 10 22 10Z"
+              <svg
+                className="w-7 h-7"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22 10V6C22 4.89543 21.1046 4 20 4H4C2.89543 4 2 4.89543 2 6V10C3.10457 10 4 10.8954 4 12C4 13.1046 3.10457 14 2 14V18C2 19.1046 2.89543 20 4 20H20C21.1046 20 22 19.1046 22 18V14C20.8954 14 20 13.1046 20 12C20 10.8954 20.8954 10 22 10Z"
                   fill="url(#gradient)"
                   stroke="url(#gradient)"
                   strokeWidth="1.5"
                 />
-                <path d="M13 4L13 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3 3" />
+                <path
+                  d="M13 4L13 20"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeDasharray="3 3"
+                />
                 <defs>
-                  <linearGradient id="gradient" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                  <linearGradient
+                    id="gradient"
+                    x1="2"
+                    y1="12"
+                    x2="22"
+                    y2="12"
+                    gradientUnits="userSpaceOnUse"
+                  >
                     <stop stopColor="#A855F7" />
                     <stop offset="1" stopColor="#EC4899" />
                   </linearGradient>
@@ -60,7 +119,9 @@ export default function Navbar() {
               </svg>
 
               {/* Texto del logo */}
-              <span className="text-white text-xl font-bold tracking-wide">TicketLive</span>
+              <span className="text-white text-xl font-bold tracking-wide">
+                TicketLive
+              </span>
             </Link>
           </div>
 
@@ -73,7 +134,7 @@ export default function Navbar() {
               Inicio
             </Link>
             <Link
-              href="/eventos"
+              href="/events"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Eventos
@@ -107,12 +168,64 @@ export default function Navbar() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
-            {/* Search Button */}
-            <button className="text-gray-300 hover:text-white transition-colors">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
+            {/* Search (Desktop) */}
+            <div className="flex items-center gap-2">
+              {isSearchOpen && (
+                <div className="relative">
+                  <input
+                    ref={searchInputRef}
+                    value={searchValue}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSearchValue(next);
+                      pushSearchToUrl(next);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setIsSearchOpen(false);
+                    }}
+                    placeholder="Buscar eventos…"
+                    className="w-64 rounded-full border border-white/10 bg-zinc-800/70 px-4 py-2 pr-9 text-sm text-white outline-none focus:border-purple-400"
+                  />
+
+                  {!!searchValue.trim() && (
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white"
+                      aria-label="Limpiar búsqueda"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSearchOpen((v) => !v);
+                  // If user is on another page, open search and also take them to /events
+                  // so they see results immediately.
+                  if (pathname !== "/events") router.push("/events");
+                }}
+                className="text-gray-300 hover:text-white transition-colors"
+                aria-label="Buscar eventos"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+            </div>
 
             {/* Auth Section - Desktop */}
             <div className="hidden sm:flex gap-3 items-center">
@@ -126,26 +239,33 @@ export default function Navbar() {
                     {user.profile_photo ? (
                       <img
                         src={user.profile_photo}
-                        alt={user.name || 'Usuario'}
+                        alt={user.name || "Usuario"}
                         className="w-9 h-9 rounded-full object-cover border-2 border-purple-500/50"
                       />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">
-                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                          {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                         </span>
                       </div>
                     )}
                     <span className="text-white text-sm font-medium hidden lg:block">
-                      {user.name || 'Usuario'}
+                      {user.name || "Usuario"}
                     </span>
                     <svg
-                      className={`w-4 h-4 text-gray-300 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
+                      className={`w-4 h-4 text-gray-300 transition-transform ${
+                        isUserMenuOpen ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
 
@@ -154,8 +274,12 @@ export default function Navbar() {
                     <div className="absolute right-0 mt-2 w-56 bg-zinc-800 rounded-lg shadow-xl py-2 border border-purple-500/20 animate-in fade-in slide-in-from-top-2 duration-200">
                       {/* User Info */}
                       <div className="px-4 py-3 border-b border-zinc-700">
-                        <p className="text-sm font-medium text-white">{user.name || 'Usuario'}</p>
-                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                        <p className="text-sm font-medium text-white">
+                          {user.name || "Usuario"}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {user.email}
+                        </p>
                       </div>
 
                       {/* Menu Items */}
@@ -164,8 +288,18 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
                         </svg>
                         Mi Perfil
                       </Link>
@@ -175,8 +309,18 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                          />
                         </svg>
                         Mis Boletos
                       </Link>
@@ -186,8 +330,18 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-zinc-700 hover:text-white transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                          />
                         </svg>
                         Favoritos
                       </Link>
@@ -198,8 +352,18 @@ export default function Navbar() {
                         onClick={handleLogout}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-zinc-700 hover:text-red-300 transition-colors"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                          />
                         </svg>
                         Cerrar Sesión
                       </button>
@@ -230,11 +394,26 @@ export default function Navbar() {
               className="md:hidden text-gray-300 hover:text-white"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 )}
               </svg>
             </button>
@@ -254,7 +433,7 @@ export default function Navbar() {
               Inicio
             </Link>
             <Link
-              href="/eventos"
+              href="/events"
               className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

@@ -7,11 +7,14 @@ import { getEvents } from "@/services/events.service";
 import IEvent from "@/interfaces/event.interface";
 import { getEventCategories } from "@/services/events.service";
 import { ICategory } from "@/services/events.service";
+import { useSearchParams } from "next/navigation";
 
 export function EventGrid() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [events, setEvents] = useState<IEvent[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
+  const searchParams = useSearchParams();
+  const q = (searchParams.get("q") ?? "").trim().toLowerCase();
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -29,10 +32,14 @@ export function EventGrid() {
     fetchEvents();
   }, []);
 
-  const filteredEvents =
+  const filteredEvents = (
     activeCategory === "All"
       ? events
-      : events.filter((event) => event.categoryId === activeCategory);
+      : events.filter((event) => event.categoryId === activeCategory)
+  ).filter((event) => {
+    if (!q) return true;
+    return (event.title ?? "").toLowerCase().includes(q);
+  });
 
   return (
     <section className="py-24 relative">
@@ -75,11 +82,17 @@ export function EventGrid() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredEvents.map((event: IEvent) => (
-            <EventCard key={event.id} {...event} />
-          ))}
-        </div>
+        {filteredEvents.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-secondary/20 p-8 text-center text-muted-foreground">
+            No se encontraron eventos{q ? ` para “${q}”` : ""}.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredEvents.map((event: IEvent) => (
+              <EventCard key={event.id} {...event} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
