@@ -8,6 +8,26 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
         pathname: "/**"
       },
+      {
+        protocol: "https",
+        hostname: "brandemia.org",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "upload.wikimedia.org",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "images.mlssoccer.com",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "images.squarespace-cdn.com",
+        pathname: "/**"
+      }
     ],
   },
 };
