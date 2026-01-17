@@ -3,21 +3,13 @@
 import { EventCard } from "./EventCard";
 import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
-import { getEvents, getEventCategories, dateFormatter } from "@/services/events.service";
+import { getEvents } from "@/services/events.service";
 import IEvent from "@/interfaces/event.interface";
+import { getEventCategories } from "@/services/events.service";
 import { ICategory } from "@/services/events.service";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 
 export function EventGrid() {
-  return (
-    <Suspense fallback={<div className="py-24 text-center">Cargando eventos...</div>}>
-      <EventGridContent />
-    </Suspense>
-  );
-}
-
-function EventGridContent() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [events, setEvents] = useState<IEvent[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
@@ -46,39 +38,48 @@ function EventGridContent() {
       : events.filter((event) => event.categoryId === activeCategory)
   ).filter((event) => {
     if (!q) return true;
-    const categoryName = categories.find(c => c.id === event.categoryId)?.name || "";
-    return (event.title ?? "").toLowerCase().includes(q) || 
-           (categoryName).toLowerCase().includes(q);
+    return (event.title ?? "").toLowerCase().includes(q);
   });
 
   return (
     <section className="py-24 relative">
       <div className="container px-4 md:px-6 mx-auto">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-12 gap-6">
-            <div className="space-y-2">
-              <h2 className="text-3xl md:text-5xl font-bold text-white">Próximos eventos</h2>
-              <p className="text-muted-foreground text-lg">No te pierdas estas experiencias increíbles.</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={activeCategory === "All" ? "primary" : "outline"}
-                  onClick={() => setActiveCategory("All")}
-                  className={`rounded-full ${activeCategory === "All" ? "" : "border-white/10 hover:bg-white/5 hover:text-white"}`}
-                >
-                  Todos
-                </Button>
-                {categories.map((category) => (
-                  <Button 
-                    key={category.id}
-                    variant={activeCategory === category.id ? "primary" : "outline"}
-                    onClick={() => setActiveCategory(category.id)}
-                    className={`rounded-full ${activeCategory === category.id ? "" : "border-white/10 hover:bg-white/5 hover:text-white"}`}
-                  >
-                    {category.name}
-                  </Button>
-                ))}
-            </div>
+          <div className="space-y-2">
+            <h2 className="text-3xl md:text-5xl font-bold text-white">
+              Próximos eventos
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              No te pierdas estas experiencias increíbles.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeCategory === "All" ? "primary" : "outline"}
+              onClick={() => setActiveCategory("All")}
+              className={`rounded-full ${
+                activeCategory === "All"
+                  ? ""
+                  : "border-white/10 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              Todos
+            </Button>
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={activeCategory === category.id ? "primary" : "outline"}
+                onClick={() => setActiveCategory(category.id)}
+                className={`rounded-full ${
+                  activeCategory === category.id
+                    ? ""
+                    : "border-white/10 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {category.name}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {filteredEvents.length === 0 ? (
@@ -87,20 +88,9 @@ function EventGridContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredEvents.map((event: IEvent) => {
-              const categoryName = categories.find(c => c.id === event.categoryId)?.name || "Evento";
-              return (
-                <EventCard 
-                  key={event.id} 
-                  image={event.imageUrl}
-                  title={event.title}
-                  date={dateFormatter(event.date)}
-                  location={event.location}
-                  price={`$${event.price}`}
-                  category={categoryName}
-                />
-              );
-            })}
+            {filteredEvents.map((event: IEvent) => (
+              <EventCard key={event.id} {...event} />
+            ))}
           </div>
         )}
       </div>

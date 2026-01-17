@@ -21,7 +21,6 @@ interface CartContextType {
   clearCart: () => void;
   getTotal: () => number;
   getItemCount: () => number;
-  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,20 +28,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isLoggedIn } = useAuth();
   const [cartItems, setCartItems] = useState<ICartItem[]>([]);
-
-  const refreshCart = async () => {
-    if (!isLoggedIn) {
-      setCartItems([]);
-      return;
-    }
-    try {
-      const cart = await getCart();
-      setCartItems(cart.items || []);
-    } catch (error) {
-      console.error("Error al refrescar el carrito:", error);
-      setCartItems([]);
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -165,7 +150,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         getTotal,
         getItemCount,
-        refreshCart,
       }}
     >
       {children}

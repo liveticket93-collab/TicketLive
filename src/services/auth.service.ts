@@ -27,13 +27,13 @@ export const loginUser = async (credentials: LoginFormValuesType): Promise<AuthR
       body: JSON.stringify(credentials),
       credentials: "include",
     });
-
+    
     const data = await response.json();
-
+    
     if (!response.ok) {
       throw new Error(data?.message || "Error al iniciar sesión");
     }
-
+    
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -54,14 +54,13 @@ export const registerUser = async (userData: RegisterFormValuesType): Promise<Au
       body: JSON.stringify(userData),
       credentials: "include",
     });
-
-
+    
     const data = await response.json();
-
+    
     if (!response.ok) {
       throw new Error(data?.message || "Error al registrar usuario");
     }
-
+    
     return data;
   } catch (error) {
     if (error instanceof Error) {
@@ -86,7 +85,7 @@ export const fetchUserProfile = async (): Promise<User | null> => {
       if (response.status === 401) {
         return null;
       }
-
+      
       const data = await response.json();
       throw new AuthError(
         data?.message || "Error al obtener perfil",

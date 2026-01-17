@@ -49,9 +49,7 @@ export default function CartPage() {
 
         {cartItems.length === 0 ? (
           <div className="rounded-2xl bg-linear-to-b from-slate-900/70 to-slate-950/70 ring-1 ring-white/10 p-16 text-center">
-            <p className="text-xl font-medium mb-2">
-              Tu carrito está vacío
-            </p>
+            <p className="text-xl font-medium mb-2">Tu carrito está vacío</p>
             <p className="text-muted-foreground">
               Agrega tus eventos favoritos para comenzar tu experiencia
             </p>
@@ -65,7 +63,7 @@ export default function CartPage() {
             </div>
 
             <div className="divide-y divide-white/5">
-              {cartItems.map(item => (
+              {cartItems.map((item) => (
                 <div
                   key={item.id}
                   className="
@@ -122,13 +120,6 @@ export default function CartPage() {
                         </button>
                       </div>
                     </div>
-
-
-
-
-
-
-
                   </div>
 
                   {/* Desktop: price */}
