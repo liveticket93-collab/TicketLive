@@ -13,11 +13,40 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const handleLogout = () => {
-    logout();
-    setIsUserMenuOpen(false);
-    router.push("/");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Keep local input synced with URL (back button, manual URL edits, etc.)
+  useEffect(() => {
+    setSearchValue(searchParams.get("q") ?? "");
+  }, [searchParams]);
+
+  // Autofocus when opening
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
+
+const pushSearchToUrl = (nextValue: string) => {
+  const params = new URLSearchParams(searchParams.toString());
+
+  if (!nextValue) params.delete("q");
+  else params.set("q", nextValue);
+
+  const qs = params.toString();
+  router.push(qs ? `/events?${qs}` : "/events");
+};
+
+
+  const clearSearch = () => {
+    setSearchValue("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("q");
+    const qs = params.toString();
+    router.push(qs ? `/events?${qs}` : "/events");
   };
 
   // Cerrar menú de usuario al hacer click fuera
