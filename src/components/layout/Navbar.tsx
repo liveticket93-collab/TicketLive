@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,43 +12,11 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Keep local input synced with URL (back button, manual URL edits, etc.)
-  useEffect(() => {
-    setSearchValue(searchParams.get("q") ?? "");
-  }, [searchParams]);
-
-  // Autofocus when opening
-  useEffect(() => {
-    if (isSearchOpen) searchInputRef.current?.focus();
-  }, [isSearchOpen]);
-
-  const pushSearchToUrl = (nextValue: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const clean = nextValue.trim();
-
-    if (!clean) params.delete("q");
-    else params.set("q", clean);
-
-    const qs = params.toString();
-
-    // If not on /events, send them there so they see results
-    const target = "/events";
-    router.push(qs ? `${target}?${qs}` : target);
-  };
-
-  const clearSearch = () => {
-    setSearchValue("");
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("q");
-    const qs = params.toString();
-    router.push(qs ? `/events?${qs}` : "/events");
+  const handleLogout = () => {
+    logout();
+    setIsUserMenuOpen(false);
+    router.push("/");
   };
 
   // Cerrar menú de usuario al hacer click fuera
@@ -69,12 +38,6 @@ export default function Navbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isUserMenuOpen]);
-
-  const handleLogout = () => {
-    logout();
-    setIsUserMenuOpen(false);
-    router.push("/");
-  };
 
   return (
     <nav className="bg-zinc-900 bg-opacity-95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-purple-500 border-opacity-20">
@@ -168,64 +131,9 @@ export default function Navbar() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
-            {/* Search (Desktop) */}
-            <div className="flex items-center gap-2">
-              {isSearchOpen && (
-                <div className="relative">
-                  <input
-                    ref={searchInputRef}
-                    value={searchValue}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setSearchValue(next);
-                      pushSearchToUrl(next);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setIsSearchOpen(false);
-                    }}
-                    placeholder="Buscar eventos…"
-                    className="w-64 rounded-full border border-white/10 bg-zinc-800/70 px-4 py-2 pr-9 text-sm text-white outline-none focus:border-purple-400"
-                  />
-
-                  {!!searchValue.trim() && (
-                    <button
-                      type="button"
-                      onClick={clearSearch}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white"
-                      aria-label="Limpiar búsqueda"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSearchOpen((v) => !v);
-                  // If user is on another page, open search and also take them to /events
-                  // so they see results immediately.
-                  if (pathname !== "/events") router.push("/events");
-                }}
-                className="text-gray-300 hover:text-white transition-colors"
-                aria-label="Buscar eventos"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </div>
+            <Suspense fallback={<div className="w-5 h-5" />}>
+              <NavbarSearch />
+            </Suspense>
 
             {/* Auth Section - Desktop */}
             <div className="hidden sm:flex gap-3 items-center">
@@ -312,7 +220,7 @@ export default function Navbar() {
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924-1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
                           Panel de Admin
@@ -553,5 +461,103 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+  );
+}
+
+function NavbarSearch() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState(searchParams.get("q") ?? "");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Keep local input synced with URL
+  useEffect(() => {
+    setSearchValue(searchParams.get("q") ?? "");
+  }, [searchParams]);
+
+  // Autofocus when opening
+  useEffect(() => {
+    if (isSearchOpen) searchInputRef.current?.focus();
+  }, [isSearchOpen]);
+
+  const pushSearchToUrl = (nextValue: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const clean = nextValue.trim();
+
+    if (!clean) params.delete("q");
+    else params.set("q", clean);
+
+    const qs = params.toString();
+    const target = "/events";
+    router.push(qs ? `${target}?${qs}` : target);
+  };
+
+  const clearSearch = () => {
+    setSearchValue("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("q");
+    const qs = params.toString();
+    router.push(qs ? `/events?${qs}` : "/events");
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {isSearchOpen && (
+        <div className="relative">
+          <input
+            ref={searchInputRef}
+            value={searchValue}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSearchValue(next);
+              pushSearchToUrl(next);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setIsSearchOpen(false);
+            }}
+            placeholder="Buscar eventos…"
+            className="w-64 rounded-full border border-white/10 bg-zinc-800/70 px-4 py-2 pr-9 text-sm text-white outline-none focus:border-purple-400"
+          />
+
+          {!!searchValue.trim() && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-white"
+              aria-label="Limpiar búsqueda"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setIsSearchOpen((v) => !v);
+          if (pathname !== "/events") router.push("/events");
+        }}
+        className="text-gray-300 hover:text-white transition-colors"
+        aria-label="Buscar eventos"
+      >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      </button>
+    </div>
   );
 }

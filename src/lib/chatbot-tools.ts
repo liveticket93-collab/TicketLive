@@ -52,22 +52,31 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
         // Manejo básico de errores HTTP
         if (!response.ok) {
-            // Intentar leer el error del body
-            const errorText = await response.text();
             let errorMessage = `Error ${response.status}: ${response.statusText}`;
             try {
+                const errorText = await response.text();
                 const json = JSON.parse(errorText);
                 if (json.message) errorMessage = json.message;
                 else if (json.error) errorMessage = json.error;
-            } catch (e) { /* ignore json parse error */ }
+            } catch (e) { /* ignore parse error */ }
 
-            throw new Error(errorMessage);
+            return { error: errorMessage, status: response.status };
         }
 
         // Si es 204 No Content
-        if (response.status === 204) return null;
+        if (response.status === 204) return { success: true };
 
-        return await response.json();
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return await response.json();
+        }
+
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch {
+            return { success: true, message: text || "Operación completada" };
+        }
     } catch (error: any) {
         console.error(`[Chatbot Tool Error] ${endpoint}:`, error);
         return { error: error.message || "Error de conexión con el servidor." };
@@ -80,27 +89,24 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 // si el LLM alucina el tipo de dato.
 // ============================================================================
 
-const flexibleId = z.union([z.string(), z.number()]).describe("ID numérico (puede venir como string o number)");
-const flexibleNumber = z.union([z.string(), z.number()]).describe("Número (puede venir como string o number)");
-
 const searchEventsSchema = z.object({
     category: z.string().optional().describe("Filtro: Nombre de la categoría (ej: 'Conciertos')."),
     title: z.string().optional().describe("Filtro: Título del evento."),
     location: z.string().optional().describe("Filtro: Ubicación."),
-    limit: flexibleNumber.optional().default(10).describe("Límite de resultados."),
+    limit: z.number().optional().default(10).describe("Límite de resultados."),
 });
 
 const getDetailsSchema = z.object({
-    eventId: flexibleId.describe("ID del evento."),
+    eventId: z.string().describe("ID del evento."),
 });
 
 const addToCartSchema = z.object({
-    eventId: flexibleId.describe("ID del evento a agregar."),
-    quantity: flexibleNumber.optional().default(1).describe("Cantidad de entradas."),
+    eventId: z.string().describe("ID del evento a agregar."),
+    quantity: z.number().optional().default(1).describe("Cantidad de entradas."),
 });
 
 const removeFromCartSchema = z.object({
-    eventId: flexibleId.describe("ID del evento a remover."),
+    eventId: z.string().describe("ID del evento a remover."),
 });
 
 // ============================================================================
@@ -110,9 +116,13 @@ const removeFromCartSchema = z.object({
 export const createChatbotTools = (cookieHeader: string) => {
 
     // Header de autenticación para pasar la sesión del usuario
-    const authHeaders = {
-        'Cookie': cookieHeader
+    const authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json'
     };
+
+    if (cookieHeader) {
+        authHeaders['Cookie'] = cookieHeader;
+    }
 
     return {
         // --- BÚSQUEDA ---
@@ -171,7 +181,7 @@ export const createChatbotTools = (cookieHeader: string) => {
         // --- CATEGORÍAS ---
         getCategories: tool({
             description: "Listar categorías de eventos disponibles.",
-            parameters: z.object({}).optional(),
+            parameters: z.object({}).passthrough().nullish(),
             execute: async () => {
                 const data = await fetchAPI('/categories');
                 return JSON.stringify(data);
@@ -181,8 +191,11 @@ export const createChatbotTools = (cookieHeader: string) => {
         // --- CARRITO: VER ---
         getCart: tool({
             description: "Ver el contenido actual del carrito de compras del usuario autenticado.",
-            parameters: z.object({}).optional(),
+            parameters: z.object({}).passthrough().nullish(),
             execute: async () => {
+                if (!cookieHeader) {
+                    return JSON.stringify({ error: "No se detectó una sesión activa. Por favor, inicia sesión para ver tu carrito." });
+                }
                 const data = await fetchAPI('/cart', { headers: authHeaders });
                 return JSON.stringify(data);
             },
@@ -211,6 +224,8 @@ export const createChatbotTools = (cookieHeader: string) => {
                 return JSON.stringify({
                     success: !data.error,
                     action: 'addToCart',
+                    event: event,
+                    quantity: qty,
                     message: data.error ? data.error : "Evento agregado al carrito correctamente",
                     details: data
                 });

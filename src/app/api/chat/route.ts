@@ -94,9 +94,17 @@ function createMockResponse(userMessage: string, isLoggedIn: boolean): ReadableS
                         sendText("Tienes una entrada para el Festival de Rock en tu carrito.");
                     }
                 }
+                // 5. Pagos/Checkout (Restringido)
+                else if (lowerMessage.match(/\b(pagar|checkout|comprar el carrito|finalizar compra)\b/)) {
+                    sendText("Para finalizar tu compra y realizar el pago, debes dirigirte a la página del carrito y seguir los pasos allí. Yo no puedo procesar pagos por ti.");
+                }
+                // 6. Ayuda con Login (Restringido)
+                else if (lowerMessage.match(/\b(como inicio sesión|ayuda login|problemas con cuenta)\b/)) {
+                    sendText("Debes iniciar sesión con tus credenciales en la página de ingreso. No puedo asistirte en el proceso de inicio de sesión por seguridad.");
+                }
                 // Default
                 else {
-                    sendText("Entiendo. Puedes preguntarme por eventos, buscar conciertos, o gestionar tu carrito de compras.");
+                    sendText("Entiendo. Puedes preguntarme por eventos, buscar conciertos, o ver tu carrito de compras.");
                 }
             } catch (e) {
                 console.error("Error en Mock", e);
@@ -127,10 +135,11 @@ export async function POST(req: Request) {
 
         // MODO MOCK: Activo en desarrollo cuando:
         // 1. USE_CHAT_MOCK=true está configurado, O
-        // 2. No hay API key configurada (para desarrollo sin credenciales)
+        // 2. No hay NINGUNA API key configurada (ni Gemini ni Groq)
         // Esto evita llamadas innecesarias a la API real durante desarrollo
+        const hasApiKey = !!process.env.GROQ_API_KEY || !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
         const useMock = process.env.NODE_ENV === 'development' &&
-            (process.env.USE_CHAT_MOCK === 'true' || !process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+            (process.env.USE_CHAT_MOCK === 'true' || !hasApiKey);
 
         if (useMock) {
             const lastMessage = messages[messages.length - 1];
@@ -194,13 +203,16 @@ export async function POST(req: Request) {
             REGLAS DE COMPORTAMIENTO:
             1. BÚSQUEDA: Usa 'searchEvents' para encontrar eventos. Si el usuario pide un género (ej: rock), úsalo como parámetro 'category'.
             2. DETALLES: Si el usuario muestra interés en un evento, usa 'getEventDetails' para darle información completa (precios, capacidad, etc).
-            3. CARRITO: 
+            3. CARRITO:
                - Puedes ver el carrito con 'getCart'.
-               - Para agregar, usa 'addToCart'. 
+               - Para agregar, usa 'addToCart'.
                - ${isLoggedIn
                     ? 'El usuario está AUTENTICADO. Puedes proceder con acciones de carrito.'
                     : 'El usuario NO está autenticado. SIEMPRE dile que debe iniciar sesión antes de intentar agregar algo al carrito.'}
-            4. TONO: Sé amable, profesional y usa emojis ocasionalmente para mantener la energía del mundo del entretenimiento. ✨`;
+            4. RESTRICCIONES CRÍTICAS:
+               - NO ayudes al usuario a iniciar sesión, ni le des instrucciones de cómo hacerlo, ni proporciones enlaces de login. Solo indica que debe estar autenticado.
+               - NO asistas en procesos de pago o checkout. Si el usuario pregunta cómo pagar o finalizar la compra, simplemente indica que debe hacerlo manualmente en la aplicación.
+            5. TONO: Sé amable, profesional y usa emojis ocasionalmente para mantener la energía del mundo del entretenimiento. ✨`;
 
 
             // Configurar cliente Groq
@@ -210,7 +222,7 @@ export async function POST(req: Request) {
             });
 
             const result = await streamText({
-                model: groq('llama-3.3-70b-versatile'),
+                model: groq('llama-3.1-8b-instant'),
                 system: systemPrompt,
                 messages,
                 tools: createChatbotTools(cookieHeader), // Pasar cookies a las herramientas

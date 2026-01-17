@@ -3,13 +3,21 @@
 import { EventCard } from "./EventCard";
 import { Button } from "@/components/ui/Button";
 import { useEffect, useState } from "react";
-import { getEvents } from "@/services/events.service";
+import { getEvents, getEventCategories, dateFormatter } from "@/services/events.service";
 import IEvent from "@/interfaces/event.interface";
-import { getEventCategories } from "@/services/events.service";
 import { ICategory } from "@/services/events.service";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 export function EventGrid() {
+  return (
+    <Suspense fallback={<div className="py-24 text-center">Cargando eventos...</div>}>
+      <EventGridContent />
+    </Suspense>
+  );
+}
+
+function EventGridContent() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [events, setEvents] = useState<IEvent[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
@@ -51,14 +59,21 @@ export function EventGrid() {
             </div>
             
             <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((category) => (
+                <Button 
+                  variant={activeCategory === "All" ? "primary" : "outline"}
+                  onClick={() => setActiveCategory("All")}
+                  className={`rounded-full ${activeCategory === "All" ? "" : "border-white/10 hover:bg-white/5 hover:text-white"}`}
+                >
+                  Todos
+                </Button>
+                {categories.map((category) => (
                   <Button 
-                    key={category.key}
-                    variant={activeCategory === category.key ? "primary" : "outline"}
-                    onClick={() => setActiveCategory(category.key)}
-                    className={`rounded-full ${activeCategory === category.key ? "" : "border-white/10 hover:bg-white/5 hover:text-white"}`}
+                    key={category.id}
+                    variant={activeCategory === category.id ? "primary" : "outline"}
+                    onClick={() => setActiveCategory(category.id)}
+                    className={`rounded-full ${activeCategory === category.id ? "" : "border-white/10 hover:bg-white/5 hover:text-white"}`}
                   >
-                    {category.label}
+                    {category.name}
                   </Button>
                 ))}
             </div>
@@ -70,9 +85,20 @@ export function EventGrid() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredEvents.map((event: IEvent) => (
-              <EventCard key={event.id} {...event} />
-            ))}
+            {filteredEvents.map((event: IEvent) => {
+              const categoryName = categories.find(c => c.id === event.categoryId)?.name || "Evento";
+              return (
+                <EventCard 
+                  key={event.id} 
+                  image={event.imageUrl}
+                  title={event.title}
+                  date={dateFormatter(event.date)}
+                  location={event.location}
+                  price={`$${event.price}`}
+                  category={categoryName}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -15,7 +15,7 @@ export const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { addToCart, removeFromCart } = useCart();
+  const { refreshCart } = useCart();
   const { isLoggedIn } = useAuth();
   
   // Ref para evitar procesar la misma acción de herramienta múltiples veces
@@ -80,12 +80,10 @@ export const ChatBot = () => {
 
   // Función para limpiar el historial
   const clearHistory = () => {
-    if (window.confirm("¿Seguro que quieres borrar todo el historial de chat?")) {
-      setMessages([]);
-      localStorage.removeItem("ticketlive-chat-history");
-      processedToolInvocationsRef.current.clear();
-      toast.success("Historial limpiado correctamente");
-    }
+    setMessages([]);
+    localStorage.removeItem("ticketlive-chat-history");
+    processedToolInvocationsRef.current.clear();
+    toast.success("Historial limpiado correctamente");
   };
 
   // Limpiar el SET de IDs procesados cuando se cierra el chat
@@ -106,67 +104,48 @@ export const ChatBot = () => {
 
   // Manejar efectos secundarios de las herramientas (como actualizar el carrito)
   useEffect(() => {
-    messages.forEach((m: any) => {
-      if (m.toolInvocations) {
-        m.toolInvocations.forEach((ti: any) => {
-          if (ti.state === 'result') {
-            const key = ti.toolCallId;
-            if (processedToolInvocationsRef.current.has(key)) return;
-            processedToolInvocationsRef.current.add(key);
+    const processMessages = async () => {
+      for (const m of messages as any[]) {
+        if (m.toolInvocations) {
+          for (const ti of m.toolInvocations) {
+            if (ti.state === 'result') {
+              const key = ti.toolCallId;
+              if (processedToolInvocationsRef.current.has(key)) continue;
+              processedToolInvocationsRef.current.add(key);
 
-            try {
-              const result = typeof ti.result === 'string' ? JSON.parse(ti.result) : ti.result;
-              
-              if (!result.success) {
-                if (result.error?.toLowerCase().includes('sesión') || result.error?.toLowerCase().includes('autenticado')) {
-                  toast.error("Acción requerida", {
-                    description: "Debes iniciar sesión para realizar esta acción.",
-                  });
-                }
-                return;
-              }
-
-              if (ti.toolName === 'addToCart' && result.event) {
-                if (!isLoggedIn) {
-                  toast.error("Inicia sesión", {
-                    description: "Necesitas estar autenticado para agregar productos al carrito.",
-                  });
-                  return;
+              try {
+                const result = typeof ti.result === 'string' ? JSON.parse(ti.result) : ti.result;
+                
+                if (!result.success) {
+                  if (result.error?.toLowerCase().includes('sesión') || result.error?.toLowerCase().includes('autenticado')) {
+                    toast.error("Acción requerida", {
+                      description: "Debes iniciar sesión para realizar esta acción.",
+                    });
+                  }
+                  continue;
                 }
 
-                const event: IEvent = {
-                  id: result.event.id,
-                  title: result.event.title,
-                  description: result.event.description || '',
-                  date: new Date(result.event.date || Date.now()),
-                  start_time: result.event.start_time || '',
-                  location: result.event.location || '',
-                  capacity: result.event.capacity || 0,
-                  price: result.event.price || 0,
-                  imageUrl: result.event.imageUrl || '',
-                  status: result.event.status ?? true,
-                  categoryId: result.event.categoryId || '',
-                };
-
-                const quantity = result.quantity || 1;
-                for (let i = 0; i < quantity; i++) {
-                  addToCart(event);
+                if (ti.toolName === 'addToCart') {
+                  await refreshCart();
+                  const quantity = result.quantity || 1;
+                  toast.success(`¡${quantity} entrada(s) agregada(s) al carrito!`);
                 }
-                toast.success(`¡${quantity} entrada(s) agregada(s) al carrito!`);
+                
+                if (ti.toolName === 'removeFromCart') {
+                  await refreshCart();
+                  toast.success('Evento eliminado del carrito');
+                }
+              } catch (e) {
+                console.error('Error procesando resultado de herramienta:', e);
               }
-
-              if (ti.toolName === 'removeFromCart' && result.eventId) {
-                removeFromCart(result.eventId);
-                toast.success('Evento eliminado del carrito');
-              }
-            } catch (e) {
-              console.error('Error procesando resultado de herramienta:', e);
             }
           }
-        });
+        }
       }
-    });
-  }, [messages, addToCart, removeFromCart, isLoggedIn]);
+    };
+    
+    processMessages();
+  }, [messages, refreshCart, isLoggedIn]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
