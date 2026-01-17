@@ -1,10 +1,14 @@
-
-import { getEvent, dateFormatter } from "@/services/events.service";
-import { Button } from "@/components/ui/Button";
+import {
+  getEvent,
+  dateFormatter,
+  timeFormatter,
+} from "@/services/events.service";
 import IEvent from "@/interfaces/event.interface";
-import { Calendar, MapPin, Ticket, User, Clock } from "lucide-react"
+import { Calendar, MapPin, Ticket, User, Clock } from "lucide-react";
 import Image from "next/image";
 import AddToCartButton from "@/components/ui/AddToCart";
+import EventMap from "@/components/maps/EventMap";
+import { geocodeMapTiler } from "@/services/geocode.service";
 
 export default async function EventDetails({
   params,
@@ -14,69 +18,105 @@ export default async function EventDetails({
   const { id } = await params;
   const event: IEvent = await getEvent(id);
   const formattedDate = dateFormatter(event.date);
+  const formattedStartTime = timeFormatter(event.start_time);
+  const formattedEndTime = timeFormatter(event.end_time);
+  const coords = await geocodeMapTiler(event.location);
 
   return (
-    <div className="group relative overflow-hidden rounded-3xl bg-secondary/30 border border-white/5 hover:border-sidebar-accent/50 transition-all duration-500 hover:shadow-[0_0_50px_-12px_rgba(139,92,246,0.2)] mx-auto my-12">
-      {/* Image Container */}
-      <div className="relative h-64 w-full overflow-hidden">
-        <Image
-          src={event.imageUrl}
-          alt={event.title}
-          fill
-          className="object-cover transition-transform duration-700 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent opacity-80" />
+    <section className="min-h-screen px-4 md:px-6 py-10">
+      <div className="max-w-6xl mx-auto space-y-10">
+        {/* ================= HERO ================= */}
+        <div className="relative overflow-hidden rounded-3xl ring-1 ring-white/10 shadow-2xl shadow-black/40">
+          <div className="relative w-full aspect-[16/6] min-h-[260px]">
+            <Image
+              src={event.imageUrl}
+              alt={event.title}
+              fill
+              priority
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
+            <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">
+              {event.title}
+            </h1>
+          </div>
+        </div>
+
+        {/* ================= BODY ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* -------- Description -------- */}
+          <div className="lg:col-span-2">
+            <div className="rounded-3xl bg-secondary/20 ring-1 ring-white/10 p-6 md:p-8 space-y-6">
+              <h2 className="text-xl font-semibold text-white">
+                Descripción del evento
+              </h2>
+
+              <p className="text-white/80 leading-relaxed whitespace-pre-line">
+                {event.description}
+              </p>
+            </div>
+          </div>
+
+          {/* -------- Sticky purchase card -------- */}
+          <aside className="lg:col-span-1 lg:sticky lg:top-24">
+            <div className="rounded-3xl bg-secondary/30 ring-1 ring-white/10 p-6 space-y-6 shadow-xl shadow-black/30">
+              {/* Meta info */}
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-white/90">{formattedDate}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-white/90">
+                    {formattedStartTime} – {formattedEndTime}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-white/90">{event.location}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <User className="h-4 w-4 text-primary" />
+                  <span className="text-white/90">
+                    {event.capacity} personas
+                  </span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-white/10" />
+
+              {/* Price + CTA */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase">
+                    Desde
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    ${event.price}
+                  </p>
+                </div>
+
+                <AddToCartButton Props={event} />
+              </div>
+            </div>
+      {coords && (
+        <div className="mt-8 space-y-4">
+          <h2 className="text-xl font-semibold text-white">Ubicación</h2>
+          <EventMap lat={coords.lat} lon={coords.lon} title={event.title} />
+          <p className="text-sm text-muted-foreground">{event.location}</p>
+        </div>
+      )}
+          </aside>
+        </div>
       </div>
-
-      {/* Content */}
-      <div className="relative p-6 -mt-12 space-y-4">
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 -top-8">
-          <Button
-            size="sm"
-            className="rounded-full h-10 w-10 p-0 flex items-center justify-center"
-          >
-            <Ticket className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <h3 className="text-xl font-bold text-white leading-tight group-hover:text-primary transition-colors line-clamp-2">
-          {event.title}
-        </h3>
-
-        <div className="space-y-2 grid grid-cols-2">
-          <div className="event-details">
-            <Calendar className="event-icons" />
-            <span>{formattedDate}</span>
-          </div>
-          <div className="event-details">
-            <MapPin className="event-icons" />
-            <span>{event.location}</span>
-          </div>
-          <div className="event-details">
-            <User className="event-icons" />
-            <span>{event.capacity}</span>
-          </div>
-          <div className="event-details">
-            <Clock className="event-icons" />
-            <span>{event.start_time.split("T")[1].split(":00.")[0]}</span>
-          </div>
-        </div>
-          <div>
-            <p className="text-md line-clamp-3">
-              {event.description}
-            </p>
-          </div>
-
-        <div className="flex items-center justify-between pt-4 border-t border-white/5">
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground uppercase">
-              Desde
-            </span>
-            <span className="text-lg font-bold text-white">{event.price}$</span>
-          </div>
-          <AddToCartButton Props={event} />
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }
