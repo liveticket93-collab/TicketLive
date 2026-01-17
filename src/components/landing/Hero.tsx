@@ -1,6 +1,5 @@
-// import Link from 'next/link';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-// import { cn } from '@/utils/cn'; // Will use if needed
 
 export function Hero() {
   return (
@@ -29,12 +28,11 @@ export function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-           <Button size="lg" className="h-14 px-8 text-lg min-w-[200px]">
-             Explorar eventos
-           </Button>
-           <Button variant="outline" size="lg" className="h-14 px-8 text-lg min-w-[200px]">
-             Cómo funciona
-           </Button>
+           <Link href="/events">
+             <Button size="lg" className="h-14 px-8 text-lg min-w-[200px]">
+               Explorar eventos
+             </Button>
+           </Link>
         </div>
         
         {/* Estadísticas */}

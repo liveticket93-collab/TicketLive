@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { Search } from "lucide-react";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -43,8 +44,8 @@ export default function Navbar() {
     <nav className="bg-zinc-900 bg-opacity-95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-purple-500 border-opacity-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
+          {/* Logo - Margen responsivo: mínimo en móvil, mayor en escritorio */}
+          <div className="flex-shrink-0 mr-4 md:mr-12 lg:mr-16">
             <Link href="/" className="flex items-center space-x-2">
               {/* Icono del ticket SVG */}
               <svg
@@ -89,7 +90,7 @@ export default function Navbar() {
           </div>
 
           {/* Enlaces de navegación - Escritorio */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8 flex-1 justify-center">
             <Link
               href="/"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
@@ -103,34 +104,38 @@ export default function Navbar() {
               Eventos
             </Link>
             <Link
-              href="/promociones"
-              className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
-            >
-              Promociones
-            </Link>
-            <Link
               href="/como-funciona"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Cómo funciona
             </Link>
             <Link
+              href="/promociones"
+              className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
+            >
+              Promociones
+            </Link>
+
+            <Link
               href="/testimonios"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Testimonios
             </Link>
-            {/* Carrito de compras */}
-            <Link
-              href="/cart"
-              className="relative text-gray-300 hover:text-white font-medium transition-colors duration-200"
-            >
-              🛒
-            </Link>
+            {/* Carrito de compras movido a la derecha */}
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-4">
+          {/* Right Section - Gap reducido en móvil para evitar desbordamiento */}
+          <div className="flex items-center gap-3 sm:gap-6 ml-auto sm:ml-4">
+            {/* Carrito de compras destacada */}
+            <Link
+              href="/cart"
+              className="relative text-gray-300 hover:text-white transition-all hover:scale-110"
+              aria-label="Ver carrito"
+            >
+              <span className="text-xl">🛒</span>
+            </Link>
+
             <Suspense fallback={<div className="w-5 h-5" />}>
               <NavbarSearch />
             </Suspense>
@@ -363,19 +368,20 @@ export default function Navbar() {
               Eventos
             </Link>
             <Link
-              href="/promociones"
-              className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Promociones
-            </Link>
-            <Link
               href="/como-funciona"
               className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Cómo funciona
             </Link>
+            <Link
+              href="/promociones"
+              className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Promociones
+            </Link>
+
             <Link
               href="/testimonios"
               className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
@@ -519,7 +525,7 @@ function NavbarSearch() {
               if (e.key === "Escape") setIsSearchOpen(false);
             }}
             placeholder="Buscar eventos…"
-            className="w-64 rounded-full border border-white/10 bg-zinc-800/70 px-4 py-2 pr-9 text-sm text-white outline-none focus:border-purple-400"
+            className="w-40 sm:w-64 rounded-full border border-white/10 bg-zinc-800/70 px-4 py-2 pr-9 text-sm text-white outline-none focus:border-purple-400 transition-all duration-300"
           />
 
           {!!searchValue.trim() && (

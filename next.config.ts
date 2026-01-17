@@ -43,6 +43,11 @@ const nextConfig: NextConfig = {
         hostname: "images.squarespace-cdn.com",
         pathname: "/**"
       },
+      {
+        protocol: "https",
+        hostname: "festivalsherpa.com",
+        pathname: "/**"
+      },
     ],
   },
 };

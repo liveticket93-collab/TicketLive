@@ -46,7 +46,9 @@ function EventGridContent() {
       : events.filter((event) => event.categoryId === activeCategory)
   ).filter((event) => {
     if (!q) return true;
-    return (event.title ?? "").toLowerCase().includes(q);
+    const categoryName = categories.find(c => c.id === event.categoryId)?.name || "";
+    return (event.title ?? "").toLowerCase().includes(q) || 
+           (categoryName).toLowerCase().includes(q);
   });
 
   return (
