@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import maplibregl, { Map } from "maplibre-gl";
+import maplibregl, { Map, Marker, Popup } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 type Props = {
@@ -11,16 +11,17 @@ type Props = {
 };
 
 export default function EventMap({ lat, lon, title }: Props) {
-  const mapRef = useRef<Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<Map | null>(null);
+  const markerRef = useRef<Marker | null>(null);
 
+  // Create map ONCE
   useEffect(() => {
     if (!containerRef.current) return;
     if (mapRef.current) return;
 
     const key = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
     if (!key) {
-      // no crash, just no map
       console.error("Missing NEXT_PUBLIC_MAPTILER_API_KEY");
       return;
     }
@@ -32,24 +33,41 @@ export default function EventMap({ lat, lon, title }: Props) {
       zoom: 14,
     });
 
-    map.addControl(
-      new maplibregl.NavigationControl({ showCompass: true }),
-      "top-right"
-    );
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
 
-    new maplibregl.Marker({ color: "#8B5CF6" })
+    const marker = new maplibregl.Marker({ color: "#8B5CF6" })
       .setLngLat([lon, lat])
-      .setPopup(
-        title ? new maplibregl.Popup({ offset: 20 }).setText(title) : undefined
-      )
       .addTo(map);
 
     mapRef.current = map;
+    markerRef.current = marker;
 
     return () => {
+      markerRef.current?.remove();
+      markerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
     };
+  }, [lat, lon]);
+
+  // Update center + marker whenever props change
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker) return;
+
+    // ✅ Move marker to new coords
+    marker.setLngLat([lon, lat]);
+
+    // ✅ Update popup text (optional)
+    if (title) {
+      marker.setPopup(new Popup({ offset: 20 }).setText(title));
+    } else {
+      marker.setPopup(undefined as any);
+    }
+
+    // ✅ Move camera
+    map.flyTo({ center: [lon, lat], zoom: 14, essential: true });
   }, [lat, lon, title]);
 
   return (

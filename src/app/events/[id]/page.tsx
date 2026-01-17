@@ -4,7 +4,7 @@ import {
   timeFormatter,
 } from "@/services/events.service";
 import IEvent from "@/interfaces/event.interface";
-import { Calendar, MapPin, Ticket, User, Clock } from "lucide-react";
+import { Calendar, MapPin, User, Clock } from "lucide-react";
 import Image from "next/image";
 import AddToCartButton from "@/components/ui/AddToCart";
 import EventMap from "@/components/maps/EventMap";
@@ -27,7 +27,7 @@ export default async function EventDetails({
       <div className="max-w-6xl mx-auto space-y-10">
         {/* ================= HERO ================= */}
         <div className="relative overflow-hidden rounded-3xl ring-1 ring-white/10 shadow-2xl shadow-black/40">
-          <div className="relative w-full aspect-[16/6] min-h-[260px]">
+          <div className="relative w-full aspect-16/6 min-h-65">
             <Image
               src={event.imageUrl}
               alt={event.title}
@@ -35,7 +35,7 @@ export default async function EventDetails({
               priority
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/30 to-transparent" />
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
@@ -107,13 +107,20 @@ export default async function EventDetails({
                 <AddToCartButton Props={event} />
               </div>
             </div>
-      {coords && (
-        <div className="mt-8 space-y-4">
-          <h2 className="text-xl font-semibold text-white">Ubicación</h2>
-          <EventMap lat={coords.lat} lon={coords.lon} title={event.title} />
-          <p className="text-sm text-muted-foreground">{event.location}</p>
-        </div>
-      )}
+            {coords && (
+              <div className="mt-8 rounded-3xl bg-secondary/30 ring-1 ring-white/10 p-6 space-y-6 shadow-xl shadow-black/30">
+                <h2 className="text-xl font-semibold text-white">Ubicación</h2>
+                <EventMap
+                  key={event.id}
+                  lat={coords.lat}
+                  lon={coords.lon}
+                  title={event.title}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {event.location}
+                </p>
+              </div>
+            )}
           </aside>
         </div>
       </div>

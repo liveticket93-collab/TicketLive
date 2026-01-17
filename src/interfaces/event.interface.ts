@@ -11,6 +11,4 @@ export default interface IEvent {
   imageUrl: string;
   status: boolean;
   categoryId: string;
-  latitude: number;
-  longitude: number;
 }

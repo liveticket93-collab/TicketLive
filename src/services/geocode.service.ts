@@ -1,19 +1,30 @@
-export async function geocodeMapTiler(query: string) {
+export async function geocodeMapTiler(address: string) {
   const key = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
   if (!key) throw new Error("Missing NEXT_PUBLIC_MAPTILER_API_KEY");
 
-  const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(
-    query
-  )}.json?key=${key}&limit=1`;
+  const url =
+    `https://api.maptiler.com/geocoding/${encodeURIComponent(address)}.json` +
+    `?key=${key}&limit=5&language=es&country=co&types=poi,address`;
 
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
+  if (!res.ok) {
+    console.error("Geocode failed:", res.status);
+    return null;
+  }
 
   const data = await res.json();
 
-  const first = data?.features?.[0];
-  if (!first) return null;
+  // 🔎 Debug: see what MapTiler is actually returning
+  const options = (data?.features ?? []).slice(0, 5).map((f: any) => ({
+    name: f?.place_name ?? f?.text,
+    center: f?.center,
+    type: f?.place_type,
+  }));
+  console.log("GEOCODE OPTIONS:", address, options);
 
-  const [lon, lat] = first.center as [number, number];
-  return { lat, lon };
+  const feature = data?.features?.[0];
+  if (!feature?.center) return null;
+
+  const [lon, lat] = feature.center; // [lon, lat]
+  return { lat: Number(lat), lon: Number(lon) };
 }
