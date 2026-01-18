@@ -133,8 +133,6 @@ export default function CrearEventoPage() {
         categoryId: selectedCategory, // UUID singular
       };
 
-      console.log("Enviando:", payload); // Para debug
-
       const response = await fetch(`${API_URL}/events`, {
         method: "POST",
         headers: {
