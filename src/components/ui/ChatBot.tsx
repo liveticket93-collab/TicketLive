@@ -3,155 +3,160 @@
 import { useChat } from "@ai-sdk/react";
 import { MessageCircle, Send, X, Bot, User, Loader2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { cn } from "@/utils/cn";
 
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
-  const chatHelpers = useChat();
-  const { messages, input = "", handleInputChange, handleSubmit, isLoading } = chatHelpers as any;
+  
+  // No longer using local state for input, we'll use useChat's native state
+
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    messages,
+    isLoading,
+  } = useChat({
+    api: "/api/chat",
+    onError: (err) => console.error("Chat error:", err),
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Auto-scroll
   useEffect(() => {
     if (isOpen) {
-      scrollToBottom();
+      setTimeout(() => inputRef.current?.focus(), 100);
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen]);
+  }, [isOpen, messages, isLoading]);
+
+  // handleSubmit handles everything natively
+
+  const lastMessage = messages.at(-1);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* Ventana de Chat */}
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans">
       {isOpen && (
-        <div className="mb-4 w-[350px] md:w-[400px] h-[500px] bg-background border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="mb-4 w-[380px] h-[520px] bg-background border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+          
           {/* Header */}
-          <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-white/20 rounded-lg">
-                <Bot size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Asistente TicketLive</h3>
-                <p className="text-[10px] opacity-80 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                  En línea
-                </p>
-              </div>
+          <div className="p-4 bg-primary text-primary-foreground flex justify-between items-center">
+            <div className="flex gap-2 items-center">
+              <Bot size={18} />
+              <span className="font-semibold text-sm">TicketLive AI</span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/10 rounded-md transition-colors"
+            <button 
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-white/20 rounded p-1 transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* Mensajes */}
+          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <Bot className="text-primary" size={24} />
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm opacity-60">
+                    <Bot size={40} className="mb-2 opacity-20"/>
+                    <p>¿En qué puedo ayudarte hoy?</p>
                 </div>
-                <p className="text-sm">¡Hola! Soy tu asistente de TicketLive. ¿En qué puedo ayudarte hoy?</p>
-              </div>
             )}
-            {(messages as any[]).map((m: any) => (
+
+            {messages.map((m) => (
               <div
                 key={m.id}
                 className={cn(
-                  "flex gap-3 max-w-[85%]",
+                  "flex gap-2 max-w-[85%]",
                   m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
                 )}
               >
                 <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                  m.role === "user" ? "bg-primary/20" : "bg-muted"
+                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border",
+                    m.role === "user" ? "bg-primary text-primary-foreground border-transparent" : "bg-muted border-border"
                 )}>
-                  {m.role === "user" ? <User size={16} /> : <Bot size={16} />}
+                  {m.role === "user" ? <User size={14} /> : <Bot size={14} />}
                 </div>
-                <div
-                  className={cn(
-                    "p-3 rounded-2xl text-sm leading-relaxed",
+
+                <div className={cn(
+                    "p-3 rounded-2xl text-sm shadow-sm",
                     m.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-tr-none"
-                      : "bg-muted text-foreground rounded-tl-none"
+                      ? "bg-primary text-primary-foreground rounded-tr-sm"
+                      : "bg-muted text-foreground rounded-tl-sm border border-border/50"
                   )}
                 >
-                  {m.content}
-                  
-                  {/* Tool Invocations */}
-                  {m.toolInvocations && m.toolInvocations.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {m.toolInvocations.map((toolInvocation: any) => {
-                        const { toolCallId, state, toolName } = toolInvocation;
-                        
-                        if (state === 'call') {
-                          return (
-                            <div key={toolCallId} className="flex items-center gap-2 text-[10px] bg-black/10 rounded-md p-1.5 animate-pulse">
-                              <Loader2 size={10} className="animate-spin" />
-                              <span>Ejecutando {toolName}...</span>
-                            </div>
-                          );
-                        }
-                        
-                        return null;
-                      })}
-                    </div>
-                  )}
+                  <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed break-words">
+                    <ReactMarkdown components={{
+                        p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
+                    }}>
+                      {m.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             ))}
-            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-              <div className="flex gap-3 max-w-[85%] mr-auto">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <Bot size={16} />
+
+            {isLoading && lastMessage?.role === "user" && (
+              <div className="flex gap-2 mr-auto animate-pulse">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <Bot size={14} />
                 </div>
-                <div className="bg-muted p-3 rounded-2xl rounded-tl-none flex items-center gap-1">
-                  <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                <div className="flex items-center gap-1 bg-muted px-3 py-2 rounded-xl rounded-tl-sm">
+                    <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                    <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                    <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce"></span>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-white/5 bg-background/50 backdrop-blur-sm">
-            <div className="relative flex items-center gap-2">
+          {/* Input Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="p-3 border-t bg-background/80 backdrop-blur"
+          >
+            <div className="flex gap-2 relative">
               <Input
+                ref={inputRef}
                 value={input}
                 onChange={handleInputChange}
-                placeholder="Escribe un mensaje..."
-                className="pr-12 h-11 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                placeholder="Escribí tu mensaje..."
+                className="pr-10"
+                autoComplete="off"
               />
               <Button
                 type="submit"
-                disabled={!(input || "").trim() || isLoading}
-                className="absolute right-1 w-9 h-9 rounded-xl p-0 flex items-center justify-center"
+                disabled={!input.trim() || isLoading}
+                className="absolute right-1 top-1 h-7 w-7"
               >
-                <Send size={16} />
+                {isLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
               </Button>
             </div>
-            <p className="text-[10px] text-center mt-2 text-muted-foreground">
-              Potenciado por TicketLive AI
-            </p>
+            <div className="text-[10px] text-center text-muted-foreground mt-2 opacity-50">
+                TicketLive AI puede cometer errores.
+            </div>
           </form>
         </div>
       )}
 
-      {/* Botón Flotante */}
+      {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95",
-          isOpen ? "bg-background border border-white/10 text-foreground" : "bg-primary text-primary-foreground"
+            "w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95",
+            isOpen && "rotate-90"
         )}
       >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        {isOpen ? <X /> : <MessageCircle />}
       </button>
     </div>
   );
