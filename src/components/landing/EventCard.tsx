@@ -96,7 +96,7 @@ export function EventCard({
                 date,
                 start_time,
                 description,
-              })
+              } as IEvent);
             }
             variant="ghost"
             size="sm"
