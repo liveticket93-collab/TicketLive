@@ -1,14 +1,14 @@
-
 "use client";
 
-export const dynamic = "force-dynamic";
-
+import { Suspense } from "react";
 import { Hero } from "@/components/landing/Hero";
 import { EventGrid } from "@/components/landing/EventGrid";
 import { FeaturedEvent } from "@/components/landing/FeaturedEvent";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
+
+export const dynamic = "force-dynamic";
 
 export default function Home() {
   const handleSubscribe = (formData: FormData) => {
