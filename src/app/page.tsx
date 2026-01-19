@@ -22,7 +22,9 @@ export default function Home() {
     <main className="flex min-h-screen flex-col bg-background selection:bg-primary/30 selection:text-primary-foreground">
       <Hero />
       <FeaturedEvent />
-      <EventGrid />
+      <Suspense fallback={<div className="py-24 text-center text-muted-foreground">Cargando eventos…</div>}>
+        <EventGrid />
+      </Suspense>
 
       <section className="py-24 border-t border-white/5 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5 -skew-y-3 transform origin-bottom-right" />
