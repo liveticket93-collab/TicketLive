@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { Toaster } from "sonner";
+import { Suspense } from "react";
 
 
 const inter = Inter({
@@ -29,7 +30,9 @@ export default function RootLayout({
         {/* AuthProvider envuelve toda la app para proveer el contexto de autenticación */}
         <AuthProvider>
           <CartProvider>
-            <Navbar />
+            <Suspense fallback={null}>
+              <Navbar />
+            </Suspense>
             {children}
             <Footer />
             {/* Toaster para mostrar notificaciones en toda la app */}
