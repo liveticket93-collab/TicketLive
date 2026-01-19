@@ -19,7 +19,7 @@ export default async function EventDetails({
   const event: IEvent = await getEvent(id);
   const formattedDate = dateFormatter(event.date);
   const formattedStartTime = timeFormatter(event.start_time);
-  const formattedEndTime = timeFormatter(event.end_time);
+  const formattedEndTime = timeFormatter(event.end_time ?? "00:00");
   const coords = await geocodeMapTiler(event.location);
 
   return (
