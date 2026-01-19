@@ -1,5 +1,7 @@
 import { groq } from "@ai-sdk/groq";
-import { streamText, convertToModelMessages } from "ai";
+import { streamText, convertToModelMessages, tool, stepCountIs } from "ai";
+import { z } from "zod";
+import { getEvents, getEventCategories, dateFormatter } from "@/services/events.service";
 
 export const maxDuration = 30;
 
@@ -16,7 +18,43 @@ Sos el asistente oficial de TicketLive.
 Respondé de forma clara, profesional y amigable.
 Usá Markdown cuando ayude a la lectura.
 Si no sabés algo, decilo con honestidad.
+Tenés acceso a herramientas para consultar eventos reales y categorías. Úsalas cuando el usuario pregunte por eventos, fechas, precios o disponibilidad.
       `.trim(),
+            stopWhen: stepCountIs(5),
+            tools: {
+                getEvents: tool({
+                    description: "Obtener la lista de todos los eventos disponibles, incluyendo título, fecha, precio y ubicación.",
+                    inputSchema: z.object({}),
+                    execute: async () => {
+                        console.log("Executing getEvents tool...");
+                        try {
+                            const [events, categories] = await Promise.all([
+                                getEvents(),
+                                getEventCategories()
+                            ]);
+                            console.log(`Fetched ${events.length} events and ${categories.length} categories.`);
+
+                            return events.map(e => ({
+                                id: e.id,
+                                title: e.title,
+                                date: dateFormatter(e.date),
+                                time: e.start_time,
+                                location: e.location,
+                                price: `$${e.price}`,
+                                category: categories.find(c => c.id === e.categoryId)?.name || e.categoryId
+                            }));
+                        } catch (error) {
+                            console.error("Error in getEvents tool:", error);
+                            throw error;
+                        }
+                    },
+                }),
+                getCategories: tool({
+                    description: "Obtener las categorías de eventos disponibles.",
+                    inputSchema: z.object({}),
+                    execute: async () => await getEventCategories(),
+                }),
+            },
         });
 
         return result.toUIMessageStreamResponse();

@@ -18,6 +18,8 @@ export function ChatBot() {
     messages,
     status,
   } = useChat({
+    // Si mudás el API a otro servidor, descomentá y ajustá la URL:
+    // api: "https://tu-servidor.com/api/chat",
     onError: (err) => console.error("Chat error:", err),
   });
 
@@ -109,7 +111,13 @@ export function ChatBot() {
                 >
                   <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed break-words">
                     <ReactMarkdown components={{
-                        p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        h1: ({node, ...props}) => <h1 className="text-lg font-bold text-primary mt-4 mb-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-base font-bold text-primary mt-3 mb-2" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-sm font-bold text-primary mt-2 mb-1" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="mb-0.5" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-semibold text-primary" {...props} />,
                     }}>
                       {content}
                     </ReactMarkdown>
