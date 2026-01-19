@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Calendar, MapPin, Ticket, User, Clock } from "lucide-react";
+import { Calendar, MapPin, Ticket, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import IEvent from "@/interfaces/event.interface";
 import { useCart } from "@/contexts/CartContext";
@@ -26,9 +26,23 @@ export function EventCard({
   const { addToCart } = useCart();
   const router = useRouter();
 
+  const eventForCart: IEvent = {
+    id,
+    title,
+    description,
+    date,
+    start_time,
+    location,
+    capacity,
+    price,
+    imageUrl,
+    status,
+    categoryId,
+  };
+
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-secondary/30 border border-white/5 hover:border-sidebar-accent/50 transition-all duration-500 hover:shadow-[0_0_50px_-12px_rgba(139,92,246,0.2)]">
-      {/* Image Container */}
+     
       <div className="relative h-64 w-full overflow-hidden">
         <Image
           src={imageUrl}
@@ -39,7 +53,6 @@ export function EventCard({
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent opacity-80" />
       </div>
 
-      {/* Content */}
       <div className="relative p-6 -mt-12 space-y-4">
         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 -top-8">
           <Button
@@ -65,7 +78,7 @@ export function EventCard({
           </div>
           <div className="event-details">
             <Clock className="event-icons" />
-            <span>{start_time.split("T")[1].split(":00.")[0]}</span>
+            <span>{start_time.split("T")[1].split(":")[0]}</span>
           </div>
         </div>
 
@@ -76,28 +89,17 @@ export function EventCard({
           >
             Ver detalles
           </Button>
+
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground uppercase">
               Desde
             </span>
-            <span className="text-lg font-bold text-white">{price}$</span>
+            <span className="text-lg font-bold text-white">
+              {price}$
+            </span>
           </div>
           <Button
-            onClick={() =>
-              addToCart({
-                id,
-                title,
-                price,
-                imageUrl,
-                categoryId,
-                status,
-                capacity,
-                location,
-                date,
-                start_time,
-                description,
-              } as IEvent);
-            }
+            onClick={() => addToCart(eventForCart)}
             variant="ghost"
             size="sm"
             className="form-button"
