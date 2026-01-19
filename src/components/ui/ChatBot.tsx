@@ -11,21 +11,35 @@ import { cn } from "@/utils/cn";
 export function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
   
-  // No longer using local state for input, we'll use useChat's native state
-
+  const [input, setInput] = useState("");
+  
   const {
-    input,
-    handleInputChange,
-    handleSubmit,
+    sendMessage,
     messages,
-    isLoading,
+    status,
   } = useChat({
-    api: "/api/chat",
     onError: (err) => console.error("Chat error:", err),
   });
 
+  const isLoading = status === "submitted" || status === "streaming";
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    sendMessage({
+      role: "user",
+      parts: [{ type: 'text', text: input }],
+    });
+    setInput("");
+  };
 
   // Auto-scroll
   useEffect(() => {
@@ -34,8 +48,6 @@ export function ChatBot() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [isOpen, messages, isLoading]);
-
-  // handleSubmit handles everything natively
 
   const lastMessage = messages.at(-1);
 
@@ -67,7 +79,13 @@ export function ChatBot() {
                 </div>
             )}
 
-            {messages.map((m) => (
+            {messages.map((m) => {
+              // Handle both legacy content and new parts structure
+              const content = typeof (m as any).content === 'string' 
+                ? (m as any).content 
+                : m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || '';
+                
+              return (
               <div
                 key={m.id}
                 className={cn(
@@ -93,12 +111,12 @@ export function ChatBot() {
                     <ReactMarkdown components={{
                         p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
                     }}>
-                      {m.content}
+                      {content}
                     </ReactMarkdown>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
 
             {isLoading && lastMessage?.role === "user" && (
               <div className="flex gap-2 mr-auto animate-pulse">
