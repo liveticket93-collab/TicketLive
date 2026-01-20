@@ -1,17 +1,23 @@
 "use client";
 
-import AdminGuard from "@/components/guards/AdminGuard";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getEventCategories, ICategory } from "@/services/events.service";
+import ImageUpload from "@/components/imageUpload/ImageUpload";
+import { useAuth } from "@/contexts/AuthContext";
+import AdminGuard from "@/components/guards/AdminGuard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export default function CrearEventoPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
@@ -29,8 +35,9 @@ export default function CrearEventoPage() {
 
     capacity: "",
     price: "",
-    imageUrl: "",
-    status: true,
+    capacity: "",
+    categoryId: "",
+    image: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,14 +47,17 @@ export default function CrearEventoPage() {
       try {
         const data = await getEventCategories();
         setCategories(data);
-      } catch (error) {
-        console.error("Error loading categories:", error);
-      } finally {
-        setLoadingCategories(false);
       }
-    };
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
-    loadCategories();
+  // Cargar categorías al montar el componente
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
   const validateTimeFormat = (time: string): boolean => {
@@ -81,7 +91,6 @@ export default function CrearEventoPage() {
         });
       }
     }
-  };
 
   const combineDateTime = (date: string, time: string): string => {
     return `${date}T${time}:00`;
@@ -105,16 +114,23 @@ export default function CrearEventoPage() {
 
     const newErrors: Record<string, string> = {};
 
-    if (!formData.start_time || !validateTimeFormat(formData.start_time)) {
-      newErrors.start_time = "Hora de inicio inválida (formato: HH:MM)";
+    if (eventDateTime < now) {
+      alert("La fecha y hora del evento no pueden ser en el pasado");
+      return false;
     }
 
-    if (!formData.end_time || !validateTimeFormat(formData.end_time)) {
-      newErrors.end_time = "Hora de fin inválida (formato: HH:MM)";
+    // Validar precio
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      alert("El precio debe ser un número válido mayor o igual a 0");
+      return false;
     }
 
-    if (!selectedCategory) {
-      newErrors.category = "Selecciona una categoría";
+    // Validar capacidad
+    const capacityNum = parseInt(capacity);
+    if (isNaN(capacityNum) || capacityNum <= 0) {
+      alert("La capacidad debe ser un número entero mayor a 0");
+      return false;
     }
 
     // Nuevo: validación de ubicación (requiere ciudad y país)
@@ -146,7 +162,7 @@ export default function CrearEventoPage() {
         start_time: startDateTime,
         end_time: endDateTime,
 
-        // ✅ send only ONE location field to backend
+        // Una única ubicación que se manda al backend
         location,
 
         capacity: parseInt(formData.capacity),
@@ -162,20 +178,21 @@ export default function CrearEventoPage() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(eventData),
       });
 
-      if (response.ok) {
-        alert("Evento creado exitosamente");
-        router.push("/admin/eventos");
-      } else {
-        const error = await response.json();
-        console.error("Error del backend:", error);
-        alert(`Error: ${error.message || "No se pudo crear el evento"}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al crear el evento");
       }
-    } catch (error) {
+
+      const newEvent = await response.json();
+      
+      alert("✅ Evento creado exitosamente");
+      router.push("/admin/eventos");
+    } catch (error: any) {
       console.error("Error creating event:", error);
-      alert("Error al crear evento");
+      alert(`❌ Error al crear el evento: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -197,9 +214,9 @@ export default function CrearEventoPage() {
       <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black py-8 px-4">
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
-            <Link
-              href="/admin/eventos"
-              className="text-purple-400 hover:text-purple-300 mb-2 inline-flex items-center gap-2"
+            <button
+              onClick={() => router.back()}
+              className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
               <svg
                 className="w-4 h-4"
@@ -397,54 +414,40 @@ export default function CrearEventoPage() {
               </p>
             </div>
 
-            {/* Capacidad y Precio */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Capacidad *
-                </label>
-                <input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  placeholder="1000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Precio *
-                </label>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  placeholder="50.00"
-                />
-              </div>
-            </div>
+                {/* Hora */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Hora de Inicio *
+                  </label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    La duración del evento será de 2 horas
+                  </p>
+                </div>
 
-            {/* URL de Imagen */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                URL de Imagen
-              </label>
-              <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="https://..."
-              />
+                {/* Ubicación */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Ubicación *
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder="Ej: Teatro Municipal, Calle 123, Ciudad"
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Categoría */}
@@ -495,35 +498,39 @@ export default function CrearEventoPage() {
               )}
             </div>
 
-            {/* Estado */}
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="status"
-                checked={formData.status}
-                onChange={handleChange}
-                className="w-4 h-4"
+            {/* Imagen */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Imagen del Evento</h2>
+              <ImageUpload
+                onImageUploaded={handleImageUploaded}
+                currentImage={formData.image}
+                label="Imagen del Evento *"
               />
-              <label className="text-sm font-medium text-gray-300">
-                Evento activo (visible para usuarios)
-              </label>
             </div>
 
-            {/* Buttons */}
-            <div className="flex gap-4 pt-4">
+            {/* Botones */}
+            <div className="flex gap-4">
               <button
-                type="submit"
-                disabled={loading || loadingCategories}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Creando..." : "Crear Evento"}
-              </button>
-              <Link
-                href="/admin/eventos"
-                className="px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition-colors"
+                type="button"
+                onClick={() => router.back()}
+                className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors font-medium"
               >
                 Cancelar
-              </Link>
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                    Creando...
+                  </span>
+                ) : (
+                  "Crear Evento"
+                )}
+              </button>
             </div>
           </form>
         </div>

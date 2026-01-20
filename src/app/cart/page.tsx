@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkoutPayment } from "@/services/payment.service";
+import { useCartCoupons } from "@/hooks/useCartCoupons";
+import CouponSection from "@/components/cart/CouponSection";
 
 export default function CartPage() {
   const {
@@ -20,8 +22,19 @@ export default function CartPage() {
 
   const { isLoggedIn } = useAuth();
 
+  const {
+    getTotalWithDiscount,
+    getDiscount,
+    confirmCouponUsage,
+    appliedCoupon,
+  } = useCartCoupons();
+
   const handleProceedToPayment = async () => {
     try {
+      // Confirmar cupón antes de pagar
+      await confirmCouponUsage();
+      
+      // ⭐ No enviamos cartId, el backend usa cart.id automáticamente
       const checkoutUrl = await checkoutPayment();
       window.location.href = checkoutUrl;
     } catch (error: unknown) {
@@ -141,14 +154,33 @@ export default function CartPage() {
               ))}
             </div>
 
-            <div className="border-t border-white/5 px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total de la orden
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  ${getTotal().toFixed(2)}
-                </p>
+            {/* Sección de cupón */}
+            <CouponSection />
+
+            {/* Total con descuento */}
+            <div className="border-t border-white/5 px-6 py-6 bg-zinc-900/50">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-gray-400">
+                  <span>Subtotal:</span>
+                  <span>${getTotal().toFixed(2)}</span>
+                </div>
+                
+                {getDiscount() > 0 && (
+                  <div 
+                    className="flex justify-between text-green-400 font-medium" 
+                    key={`discount-${appliedCoupon?.coupon?.code}`}
+                  >
+                    <span>Descuento:</span>
+                    <span>-${getDiscount().toFixed(2)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-xl font-bold text-primary pt-2 border-t border-white/5">
+                  <span>Total:</span>
+                  <span key={appliedCoupon?.coupon?.code || 'no-coupon'}>
+                    ${getTotalWithDiscount().toFixed(2)}
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -162,14 +194,14 @@ export default function CartPage() {
                 {!isLoggedIn ? (
                   <Link
                     href="/login"
-                    className="px-6 py-3 rounded-lg bg-linear-to-r from-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-purple-500/40 cursor-pointer hover:scale-105 active:scale-95"
+                    className="px-6 py-3 rounded-lg bg-linear-to-r from-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-purple-500/40 cursor-pointer hover:scale-105 active:scale-95 flex-1 text-center"
                   >
                     Inicia sesión
                   </Link>
                 ) : (
                   <button
                     onClick={handleProceedToPayment}
-                    className="form-button cursor-pointer"
+                    className="form-button cursor-pointer flex-1"
                   >
                     Procesar la compra
                   </button>
