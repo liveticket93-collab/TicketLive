@@ -28,19 +28,16 @@ export default function Navbar() {
     if (isSearchOpen) searchInputRef.current?.focus();
   }, [isSearchOpen]);
 
-  const pushSearchToUrl = (nextValue: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const clean = nextValue.trim();
+const pushSearchToUrl = (nextValue: string) => {
+  const params = new URLSearchParams(searchParams.toString());
 
-    if (!clean) params.delete("q");
-    else params.set("q", clean);
+  if (!nextValue) params.delete("q");
+  else params.set("q", nextValue);
 
-    const qs = params.toString();
+  const qs = params.toString();
+  router.push(qs ? `/events?${qs}` : "/events");
+};
 
-    // If not on /events, send them there so they see results
-    const target = "/events";
-    router.push(qs ? `${target}?${qs}` : target);
-  };
 
   const clearSearch = () => {
     setSearchValue("");
