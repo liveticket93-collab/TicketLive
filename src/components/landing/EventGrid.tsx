@@ -10,11 +10,18 @@ import { ICategory } from "@/services/events.service";
 import { useSearchParams } from "next/navigation";
 
 export function EventGrid() {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const searchParams = useSearchParams();
+  const categoryIdFromUrl = searchParams.get("category") ?? "All";
+  const [activeCategory, setActiveCategory] = useState(categoryIdFromUrl);
   const [events, setEvents] = useState<IEvent[]>([]);
   const [categories, setCategories] = useState<ICategory[]>([]);
-  const searchParams = useSearchParams();
   const q = (searchParams.get("q") ?? "").trim().toLowerCase();
+
+  useEffect(() => {
+    if (categoryIdFromUrl) {
+      setActiveCategory(categoryIdFromUrl);
+    }
+  }, [categoryIdFromUrl]);
 
   useEffect(() => {
     const fetchEvents = async () => {

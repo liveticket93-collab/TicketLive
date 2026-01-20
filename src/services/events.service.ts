@@ -52,9 +52,17 @@ export const getEventCategories = async (): Promise<ICategory[]> => {
 
 export const dateFormatter = (date: Date) => {
   const dateObj = new Date(date);
-  return dateObj.toLocaleDateString("en-US", {
+  return dateObj.toLocaleDateString("es-CO", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 } 
+
+export const timeFormatter = (startTime: string) => {
+  const dateObj = new Date(startTime);
+  return dateObj.toLocaleTimeString("es-CO", {
+    hour: "numeric",
+    minute: "numeric",
+  });
+}

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
-
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkoutPayment } from "@/services/payment.service";
+import { useCartCoupons } from "@/hooks/useCartCoupons";
+import CouponSection from "@/components/cart/CouponSection";
 
 export default function CartPage() {
   const {
@@ -21,8 +22,19 @@ export default function CartPage() {
 
   const { isLoggedIn } = useAuth();
 
+  const {
+    getTotalWithDiscount,
+    getDiscount,
+    confirmCouponUsage,
+    appliedCoupon,
+  } = useCartCoupons();
+
   const handleProceedToPayment = async () => {
     try {
+      // Confirmar cupón antes de pagar
+      await confirmCouponUsage();
+      
+      // ⭐ No enviamos cartId, el backend usa cart.id automáticamente
       const checkoutUrl = await checkoutPayment();
       window.location.href = checkoutUrl;
     } catch (error: unknown) {
@@ -67,35 +79,45 @@ export default function CartPage() {
               {cartItems.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-6 px-6 py-6 items-center"
+                  className="
+        px-4 py-5 md:px-6 md:py-6
+        grid gap-4 md:grid-cols-12 md:items-center
+      "
                 >
-
-                  <div className="md:col-span-8 flex gap-4 items-center">
-                    <div className="relative w-40 h-24 rounded-xl overflow-hidden bg-secondary">
+                  {/* Left: event info */}
+                  <div className="md:col-span-8 flex gap-4 items-start">
+                    <Link
+                      href={`/events/${item.event.id}`}
+                      className="relative shrink-0 overflow-hidden rounded-xl w-16 h-16 md:w-28 md:h-20 bg-secondary ring-1 ring-white/10 hover:ring-white/20 transition"
+                      aria-label={`Ver ${item.event.title}`}
+                    >
                       <Image
                         src={item.event.imageUrl}
                         alt={item.event.title}
                         fill
                         className="object-cover"
-                        sizes="160px"
+                        sizes="(max-width: 768px) 64px, 112px"
                       />
-                    </div>
+                    </Link>
 
-                    <div>
-                      <h3 className="font-semibold text-white">
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/events/${item.event.id}`}
+                        className="inline-block font-semibold text-white leading-snug break-words hover:underline underline-offset-4"
+                      >
                         {item.event.title}
-                      </h3>
+                      </Link>
 
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2 break-words">
                         {item.event.description}
                       </p>
 
+                      {/* quantity controls here (NOT inside the Link) */}
                       <div className="flex items-center gap-3 mt-3">
                         <button
-                          onClick={() =>
-                            decreaseQuantity(item.event.id)
-                          }
+                          onClick={() => decreaseQuantity(item.event.id)}
                           className="w-8 h-8 rounded-lg bg-secondary text-white hover:bg-secondary/80 transition cursor-pointer"
+                          aria-label="Disminuir cantidad"
                         >
                           −
                         </button>
@@ -103,10 +125,9 @@ export default function CartPage() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() =>
-                            increaseQuantity(item.event.id)
-                          }
+                          onClick={() => increaseQuantity(item.event.id)}
                           className="w-8 h-8 rounded-lg bg-secondary text-white hover:bg-secondary/80 transition cursor-pointer"
+                          aria-label="Aumentar cantidad"
                         >
                           +
                         </button>
@@ -114,14 +135,17 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  <div className="md:col-span-2 text-center font-semibold text-primary">
+                  {/* Desktop: price */}
+                  <div className="hidden md:block md:col-span-2 text-center font-semibold text-primary tabular-nums">
                     ${(item.unitPrice * item.quantity).toFixed(2)}
                   </div>
 
-                  <div className="md:col-span-2 text-center">
+                  {/* Desktop: remove */}
+                  <div className="hidden md:block md:col-span-2 text-center">
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-red-400 hover:text-red-500 transition-colors cursor-pointer"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-white/10 text-red-300 hover:text-red-400 hover:bg-white/5 transition"
+                      aria-label="Eliminar del carrito"
                     >
                       ✕
                     </button>
@@ -130,14 +154,33 @@ export default function CartPage() {
               ))}
             </div>
 
-            <div className="border-t border-white/5 px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Total de la orden
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  ${getTotal().toFixed(2)}
-                </p>
+            {/* Sección de cupón */}
+            <CouponSection />
+
+            {/* Total con descuento */}
+            <div className="border-t border-white/5 px-6 py-6 bg-zinc-900/50">
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-gray-400">
+                  <span>Subtotal:</span>
+                  <span>${getTotal().toFixed(2)}</span>
+                </div>
+                
+                {getDiscount() > 0 && (
+                  <div 
+                    className="flex justify-between text-green-400 font-medium" 
+                    key={`discount-${appliedCoupon?.coupon?.code}`}
+                  >
+                    <span>Descuento:</span>
+                    <span>-${getDiscount().toFixed(2)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-xl font-bold text-primary pt-2 border-t border-white/5">
+                  <span>Total:</span>
+                  <span key={appliedCoupon?.coupon?.code || 'no-coupon'}>
+                    ${getTotalWithDiscount().toFixed(2)}
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -151,14 +194,14 @@ export default function CartPage() {
                 {!isLoggedIn ? (
                   <Link
                     href="/login"
-                    className="px-6 py-3 rounded-lg bg-linear-to-r from-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-purple-500/40 cursor-pointer hover:scale-105 active:scale-95"
+                    className="px-6 py-3 rounded-lg bg-linear-to-r from-purple-600 to-pink-600 text-white font-medium shadow-lg shadow-purple-500/40 cursor-pointer hover:scale-105 active:scale-95 flex-1 text-center"
                   >
                     Inicia sesión
                   </Link>
                 ) : (
                   <button
                     onClick={handleProceedToPayment}
-                    className="form-button cursor-pointer"
+                    className="form-button cursor-pointer flex-1"
                   >
                     Procesar la compra
                   </button>
