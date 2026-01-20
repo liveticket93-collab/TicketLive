@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
-import { Ticket } from "lucide-react";
+import { MessageCircle, Ticket } from "lucide-react";
 import Image from "next/image";
+import { getEventCategories, ICategory } from "@/services/events.service";
 
-export function Footer() {
+export async function Footer() {
+  let categories: ICategory[] = [];
+  try {
+    categories = await getEventCategories();
+  } catch (error) {
+    console.error("Error fetching categories for footer:", error);
+  }
   return (
     <footer className="border-t border-white/5 bg-background pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
@@ -22,31 +28,16 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-6">Descubre</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>
-                <Link href="/events?category=4610649a-e216-41a3-b74a-f6c9e7b9dff0" className="hover:text-primary transition-colors">
-                  Conciertos
-                </Link>
-              </li>
-              <li>
-                <Link href="/events?category=9383b546-1bc8-4eda-aa6f-9485a117d707" className="hover:text-primary transition-colors">
-                  Deportes
-                </Link>
-              </li>
-              <li>
-                <Link href="/events?category=5baf662c-60ca-4447-8c68-fa1b9f7746e6" className="hover:text-primary transition-colors">
-                  Festivales
-                </Link>
-              </li>
-              <li>
-                <Link href="/events?category=c4b68897-2c1d-4037-923f-93f96d723d6f" className="hover:text-primary transition-colors">
-                  Teatro
-                </Link>
-              </li>
-              <li>
-                <Link href="/events?category=45d8d4f9-a51a-4a1b-bee2-170d1ba44fe8" className="hover:text-primary transition-colors">
-                  Conferencias
-                </Link>
-              </li>
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link 
+                    href={`/events?category=${category.id}`} 
+                    className="hover:text-primary transition-colors"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link href="#" className="hover:text-primary transition-colors">
                   Testimonios
