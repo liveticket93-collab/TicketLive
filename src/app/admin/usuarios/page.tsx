@@ -64,6 +64,12 @@ export default function UsuariosPage() {
   };
 
   const handleAction = (type: ActionType, user: User) => {
+    if (type === "delete" && user.isAdmin) {
+      if (!confirm(`⚠️ ADVERTENCIA: ESTE ES UN ADMINISTRADOR\n\n¿Estás SEGURO de que quieres eliminar al admin "${user.name}"?\n\nEsto puede causar problemas si es el único admin del sistema.\n\n¿Continuar de todas formas?`)) {
+        return;
+      }
+    }
+
     setActionModal({ show: true, type, user });
     setBanReason("");
   };
@@ -103,15 +109,15 @@ export default function UsuariosPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || response.statusText);
       }
 
-      // Actualizar la lista
       if (actionModal.type === "delete") {
         setUsers(users.filter((u) => u.id !== actionModal.user!.id));
         setSuccessMessage(`Usuario "${actionModal.user.name}" eliminado`);
       } else {
-        await fetchUsers(); // Recargar lista completa
+        await fetchUsers();
         const action = actionModal.type === "ban" ? "baneado" : "desbaneado";
         setSuccessMessage(`Usuario "${actionModal.user.name}" ${action}`);
       }
@@ -140,15 +146,31 @@ export default function UsuariosPage() {
 
     switch (actionModal.type) {
       case "delete":
+        const isAdminDelete = actionModal.user.isAdmin;
         return {
-          icon: "🗑️",
+          icon: isAdminDelete ? "⚠️" : "🗑️",
           color: "red",
-          title: "¿Eliminar Usuario?",
+          title: isAdminDelete ? "⚠️ ELIMINAR ADMINISTRADOR" : "¿Eliminar Usuario?",
           message: (
             <>
+              {isAdminDelete && (
+                <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3 mb-4">
+                  <p className="text-yellow-400 font-bold text-sm">
+                    ⚠️ ADVERTENCIA: Este usuario es ADMINISTRADOR
+                  </p>
+                </div>
+              )}
               Estás a punto de eliminar permanentemente a{" "}
               <span className="font-semibold text-white">{actionModal.user.name}</span>
               {" "}({actionModal.user.email}).
+              {isAdminDelete && (
+                <>
+                  <br /><br />
+                  <span className="text-yellow-400 font-medium">
+                    Si es el único admin, perderás acceso al panel de administración.
+                  </span>
+                </>
+              )}
               <br /><br />
               <span className="text-red-400 font-medium">
                 Esta acción NO se puede deshacer. Se perderán todos sus datos.
@@ -204,7 +226,7 @@ export default function UsuariosPage() {
   return (
     <AdminGuard>
       <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black py-8 px-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {/* Header */}
           <div className="mb-8">
             <Link
@@ -249,25 +271,25 @@ export default function UsuariosPage() {
           {!loading && !error && users.length > 0 && (
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[1200px]">
                   <thead className="bg-zinc-700/50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[250px]">
                         Usuario
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[220px]">
                         Email
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[160px]">
                         Estado
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[130px]">
                         Teléfono
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-[130px]">
                         Registro
                       </th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider w-[260px]">
                         Acciones
                       </th>
                     </tr>
@@ -279,18 +301,23 @@ export default function UsuariosPage() {
                       return (
                         <tr key={user.id} className="hover:bg-zinc-700/30 transition-colors">
                           {/* Usuario */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                                 {user.name ? user.name.charAt(0).toUpperCase() : "?"}
                               </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-white">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-white truncate">
                                   {user.name || "Sin nombre"}
                                 </div>
-                                {user.address && (
-                                  <div className="text-sm text-gray-400">
+                                {/* ✅ ARREGLO 3: Mostrar aviso si no hay ubicación */}
+                                {user.address ? (
+                                  <div className="text-xs text-gray-400 truncate">
                                     📍 {user.address}
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-gray-500 italic">
+                                    Sin ubicación
                                   </div>
                                 )}
                               </div>
@@ -298,91 +325,95 @@ export default function UsuariosPage() {
                           </td>
 
                           {/* Email */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-300">{user.email}</div>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-300 truncate max-w-[200px]" title={user.email}>
+                              {user.email}
+                            </div>
                           </td>
 
                           {/* Estado */}
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex flex-col gap-1">
-                              {/* Rol Badge */}
                               {user.isAdmin ? (
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/50 w-fit">
-                                  Admin
+                                <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/50 w-fit">
+                                  👑 Admin
                                 </span>
                               ) : (
-                                <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/50 w-fit">
+                                <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-gray-500/20 text-gray-400 border border-gray-500/50 w-fit">
                                   Usuario
                                 </span>
                               )}
 
-                              {/* Ban Badge */}
                               {isBanned && (
                                 <span
-                                  className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-500/20 text-red-400 border border-red-500/50 w-fit cursor-help"
+                                  className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-500/20 text-red-400 border border-red-500/50 w-fit cursor-help"
                                   title={user.banReason || "Sin razón especificada"}
                                 >
                                   🚫 Baneado
-                                  {user.bannedAt && ` (${formatDate(user.bannedAt)})`}
                                 </span>
                               )}
                             </div>
                           </td>
 
                           {/* Teléfono */}
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm text-gray-300">
                               {user.phone || (
-                                <span className="text-gray-500 italic">Sin teléfono</span>
+                                <span className="text-gray-500 italic text-xs">Sin teléfono</span>
                               )}
                             </div>
                           </td>
 
                           {/* Registro */}
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm text-gray-400">
                               {formatDate(user.createdAt)}
                             </div>
                           </td>
 
                           {/* Acciones */}
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
                             <div className="flex gap-2 justify-end">
                               {/* Botón Banear/Desbanear */}
                               {isBanned ? (
                                 <button
                                   onClick={() => handleAction("unban", user)}
-                                  className="inline-flex items-center gap-2 px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg transition-colors"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg transition-colors text-sm whitespace-nowrap"
                                   title="Desbanear usuario"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
-                                  <span className="text-sm">Desbanear</span>
+                                  <span>Desbanear</span>
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => handleAction("ban", user)}
-                                  className="inline-flex items-center gap-2 px-3 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/50 rounded-lg transition-colors"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/50 rounded-lg transition-colors text-sm whitespace-nowrap"
                                   title="Banear usuario"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                   </svg>
-                                  <span className="text-sm">Banear</span>
+                                  <span>Banear</span>
                                 </button>
                               )}
 
-                              {/* Botón Eliminar */}
+                              {/* ✅ ARREGLO 4: Botón Eliminar con texto siempre visible */}
                               <button
                                 onClick={() => handleAction("delete", user)}
-                                className="inline-flex items-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg transition-colors"
-                                title="Eliminar usuario permanentemente"
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg transition-colors text-sm whitespace-nowrap ${
+                                  user.isAdmin
+                                    ? "bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
+                                    : "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/50"
+                                }`}
+                                title={user.isAdmin ? "⚠️ Eliminar administrador" : "Eliminar usuario"}
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                <span className="text-sm">Eliminar</span>
+                                {/* Texto siempre visible */}
+                                <span>{user.isAdmin ? "⚠️ Eliminar" : "Eliminar"}</span>
                               </button>
                             </div>
                           </td>
@@ -391,6 +422,10 @@ export default function UsuariosPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+              
+              <div className="sm:hidden bg-zinc-700/30 px-4 py-2 text-center text-xs text-gray-400">
+                ← Desliza para ver más →
               </div>
             </div>
           )}
@@ -410,7 +445,6 @@ export default function UsuariosPage() {
       {actionModal.show && actionModal.user && modalContent && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
           <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 max-w-md w-full">
-            {/* Icon */}
             <div className="flex items-center justify-center mb-4">
               <div className={`p-3 rounded-full ${
                 modalContent.color === "red" ? "bg-red-500/10" :
@@ -421,17 +455,14 @@ export default function UsuariosPage() {
               </div>
             </div>
 
-            {/* Title */}
             <h3 className="text-xl font-bold text-white text-center mb-4">
               {modalContent.title}
             </h3>
 
-            {/* Message */}
             <div className="text-gray-400 text-center mb-6">
               {modalContent.message}
             </div>
 
-            {/* Reason Input (solo para ban) */}
             {modalContent.showReasonInput && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -447,7 +478,6 @@ export default function UsuariosPage() {
               </div>
             )}
 
-            {/* Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => setActionModal({ show: false, type: null, user: null })}

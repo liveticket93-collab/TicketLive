@@ -12,7 +12,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
-    totalOrders: 0,
     totalRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -67,18 +66,18 @@ export default function AdminDashboard() {
               <p className="text-3xl font-bold text-white">{stats.totalEvents}</p>
             </div>
 
-            {/* Total Órdenes */}
-            <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-blue-500/30 rounded-2xl p-6 hover:border-blue-400/50 transition-all">
+            {/* Total Cupones */}
+            <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 border border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-400/50 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-600/30 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                <div className="w-12 h-12 bg-emerald-600/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                   </svg>
                 </div>
-                <span className="text-sm text-blue-400 font-medium">+23%</span>
+                <span className="text-sm text-emerald-400 font-medium">+5</span>
               </div>
-              <h3 className="text-gray-400 text-sm mb-1">Órdenes Totales</h3>
-              <p className="text-3xl font-bold text-white">{stats.totalOrders}</p>
+              <h3 className="text-gray-400 text-sm mb-1">Cupones Activos</h3>
+              <p className="text-3xl font-bold text-white">0</p>
             </div>
 
             {/* Ingresos */}
@@ -154,6 +153,24 @@ export default function AdminDashboard() {
                 </div>
               </Link>
 
+              {/* Gestionar Cupones */}
+              <Link
+                href="/admin/cupones"
+                className="bg-zinc-800/50 border border-emerald-500/20 rounded-xl p-6 hover:border-emerald-500/50 hover:bg-zinc-800/70 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center group-hover:bg-emerald-600/30 transition-all">
+                    <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Gestionar Cupones</h3>
+                    <p className="text-gray-400 text-sm">Crear y editar cupones</p>
+                  </div>
+                </div>
+              </Link>
+
               {/* Ver Ventas */}
               <Link
                 href="/admin/ventas"
@@ -223,6 +240,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </AdminGuard>
+    </AdminGuard>   
   );
 }
