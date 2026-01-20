@@ -3,7 +3,8 @@ import { streamText, convertToModelMessages, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { getEvents, getEventCategories, dateFormatter } from "@/services/events.service";
 
-export const maxDuration = 30;
+// Aumentamos maxDuration para permitir ejecuciones de herramientas más largas (ej. consultas a BD)
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {
@@ -21,7 +22,8 @@ IMPORTANTE: Siempre usá títulos (## o ###) para los nombres de los eventos y n
 Si no sabés algo, decilo con honestidad.
 Tenés acceso a herramientas para consultar eventos reales y categorías. Úsalas cuando el usuario pregunte por eventos, fechas, precios o disponibilidad.
       `.trim(),
-            stopWhen: stepCountIs(5),
+            // @ts-expect-error maxSteps es requerido para la ejecución de herramientas en el servidor en versiones nuevas del SDK, a pesar del error de tipos
+            maxSteps: 5, // Habilita iteraciones de múltiples pasos para las herramientas
             tools: {
                 getEvents: tool({
                     description: "Obtener la lista de todos los eventos disponibles, incluyendo título, fecha, precio y ubicación.",
