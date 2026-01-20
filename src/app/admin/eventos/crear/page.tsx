@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/imageUpload/ImageUpload";
-import { useAuth } from "@/contexts/AuthContext";
 import AdminGuard from "@/components/guards/AdminGuard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -15,7 +14,6 @@ interface Category {
 
 export default function CrearEventoPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -25,7 +23,12 @@ export default function CrearEventoPage() {
     description: "",
     date: "",
     time: "",
-    location: "",
+
+    // Nuevo: el evento tendrá una sola ubicación divida en tres partes
+    locationCity: "",
+    locationCountry: "",
+    locationPlace: "",
+
     price: "",
     capacity: "",
     categoryId: "",
@@ -46,13 +49,14 @@ export default function CrearEventoPage() {
     }
   };
 
-  // Cargar categorías al montar el componente
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -62,12 +66,57 @@ export default function CrearEventoPage() {
     setFormData({ ...formData, image: url });
   };
 
-  const validateForm = () => {
-    const { title, description, date, time, location, price, capacity, categoryId, image } = formData;
+  // Nuevo: Construye la ubicación del evento
+  const buildLocation = () => {
+    const parts = [
+      formData.locationPlace,
+      formData.locationCity,
+      formData.locationCountry,
+    ]
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-    // Validar campos requeridos
-    if (!title || !description || !date || !time || !location || !price || !capacity || !categoryId) {
+    return parts.join(", ");
+  };
+
+  const validateForm = () => {
+    const {
+      title,
+      description,
+      date,
+      time,
+      locationCity,
+      locationCountry,
+      locationPlace,
+      price,
+      capacity,
+      categoryId,
+      image,
+    } = formData;
+
+    // required fields
+    if (
+      !title ||
+      !description ||
+      !date ||
+      !time ||
+      !price ||
+      !capacity ||
+      !categoryId
+    ) {
       alert("Por favor completa todos los campos obligatorios");
+      return false;
+    }
+
+    // Ubicación obligatoria (ciudad + país)
+    if (!locationCity.trim() || !locationCountry.trim()) {
+      alert("Por favor completa Ciudad y País en la ubicación");
+      return false;
+    }
+
+    // El nombre del sitio es obligatorio
+    if (!locationPlace.trim()) {
+      alert("Por favor completa el Lugar/Dirección del evento");
       return false;
     }
 
@@ -106,32 +155,31 @@ export default function CrearEventoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // Combinar fecha y hora en formato ISO
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
-      
-      // Calcular end_time (2 horas después del inicio por defecto)
+
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 2);
+
+      // Nuevo: construir la ubicación
+      const location = buildLocation();
 
       const eventData = {
         title: formData.title,
         description: formData.description,
         date: startDateTime.toISOString(),
-        start_time: startDateTime.toISOString(),  // ⭐ AGREGADO
-        end_time: endDateTime.toISOString(),      // ⭐ AGREGADO
-        location: formData.location,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location, // ✅ composed string sent to backend
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
         categoryId: formData.categoryId,
         imageUrl: formData.image,
-        status: true,  // ⭐ AGREGADO (evento activo por defecto)
+        status: true,
       };
 
       const response = await fetch(`${API_URL}/events`, {
@@ -148,8 +196,8 @@ export default function CrearEventoPage() {
         throw new Error(errorData.message || "Error al crear el evento");
       }
 
-      const newEvent = await response.json();
-      
+      await response.json();
+
       alert("✅ Evento creado exitosamente");
       router.push("/admin/eventos");
     } catch (error: any) {
@@ -170,12 +218,24 @@ export default function CrearEventoPage() {
               onClick={() => router.back()}
               className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Volver
             </button>
-            <h1 className="text-4xl font-bold text-white mb-2">Crear Nuevo Evento</h1>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Crear Nuevo Evento
+            </h1>
             <p className="text-gray-400">Completa la información del evento</p>
           </div>
 
@@ -183,7 +243,9 @@ export default function CrearEventoPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Información Básica */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Información Básica</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Información Básica
+              </h2>
 
               <div className="space-y-4">
                 {/* Título */}
@@ -247,7 +309,9 @@ export default function CrearEventoPage() {
 
             {/* Fecha y Ubicación */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Fecha y Ubicación</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Fecha y Ubicación
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Fecha */}
@@ -284,27 +348,57 @@ export default function CrearEventoPage() {
                   </p>
                 </div>
 
-                {/* Ubicación */}
+                {/* Nuevo: Ubicación (3 partes) */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Ubicación *
                   </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="Ej: Teatro Municipal, Calle 123, Ciudad"
-                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    required
-                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      name="locationCity"
+                      value={formData.locationCity}
+                      onChange={handleChange}
+                      placeholder="Ciudad (ej: Bogotá)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationCountry"
+                      value={formData.locationCountry}
+                      onChange={handleChange}
+                      placeholder="País (ej: Colombia)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationPlace"
+                      value={formData.locationPlace}
+                      onChange={handleChange}
+                      required
+                      placeholder="Nombre del lugar"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    />
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-2">
+                    Se guardará como:{" "}
+                    <span className="text-gray-200">
+                      {buildLocation() || "—"}
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Precio y Capacidad */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Precio y Capacidad</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Precio y Capacidad
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Precio */}
@@ -351,7 +445,9 @@ export default function CrearEventoPage() {
 
             {/* Imagen */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Imagen del Evento</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Imagen del Evento
+              </h2>
               <ImageUpload
                 onImageUploaded={handleImageUploaded}
                 currentImage={formData.image}

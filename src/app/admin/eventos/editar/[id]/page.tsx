@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import ImageUpload from "@/components/imageUpload/ImageUpload";
-import { useAuth } from "@/contexts/AuthContext";
 import AdminGuard from "@/components/guards/AdminGuard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
@@ -32,25 +31,56 @@ export default function EditarEventoPage() {
   const router = useRouter();
   const params = useParams();
   const eventId = params.id as string;
-  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
+  // Divide la ubicación en tres partes
+  const splitLocation = (location: string) => {
+    const parts = (location ?? "")
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const country = parts.at(-1) ?? "";
+    const city = parts.at(-2) ?? "";
+    const place = parts.slice(0, Math.max(0, parts.length - 2)).join(", ");
+
+    return { place, city, country };
+  };
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
     time: "",
-    location: "",
+
+    // Divide la ubicación en tres partes
+    locationCity: "",
+    locationCountry: "",
+    locationPlace: "",
+
     price: "",
     capacity: "",
     categoryId: "",
     image: "",
     status: true,
   });
+
+  // Construye la ubicación
+  const buildLocation = () => {
+    const parts = [
+      formData.locationPlace,
+      formData.locationCity,
+      formData.locationCountry,
+    ]
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return parts.join(", ");
+  };
 
   // Cargar categorías
   const fetchCategories = async () => {
@@ -85,12 +115,19 @@ export default function EditarEventoPage() {
       const dateStr = startDate.toISOString().split("T")[0];
       const timeStr = startDate.toTimeString().slice(0, 5);
 
+      // Divide la ubicación en partes
+      const { place, city, country } = splitLocation(event.location);
+
       setFormData({
         title: event.title,
         description: event.description,
         date: dateStr,
         time: timeStr,
-        location: event.location,
+
+        locationCity: city,
+        locationCountry: country,
+        locationPlace: place,
+
         price: event.price.toString(),
         capacity: event.capacity.toString(),
         categoryId: event.categoryId,
@@ -112,7 +149,9 @@ export default function EditarEventoPage() {
   }, [eventId]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value, type } = e.target;
 
@@ -129,11 +168,35 @@ export default function EditarEventoPage() {
   };
 
   const validateForm = () => {
-    const { title, description, date, time, location, price, capacity, categoryId, image } =
-      formData;
+    const {
+      title,
+      description,
+      date,
+      time,
+      locationCity,
+      locationCountry,
+      price,
+      capacity,
+      categoryId,
+      image,
+    } = formData;
 
-    if (!title || !description || !date || !time || !location || !price || !capacity || !categoryId) {
+    if (
+      !title ||
+      !description ||
+      !date ||
+      !time ||
+      !price ||
+      !capacity ||
+      !categoryId
+    ) {
       alert("Por favor completa todos los campos obligatorios");
+      return false;
+    }
+
+    // ✅ location required (city + country)
+    if (!locationCity.trim() || !locationCountry.trim()) {
+      alert("Por favor completa Ciudad y País en la ubicación");
       return false;
     }
 
@@ -168,9 +231,7 @@ export default function EditarEventoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
@@ -179,13 +240,16 @@ export default function EditarEventoPage() {
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 2);
 
+      // ✅ build single backend location string
+      const location = buildLocation();
+
       const eventData = {
         title: formData.title,
         description: formData.description,
         date: startDateTime.toISOString(),
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
-        location: formData.location,
+        location, // ✅ composed
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
         categoryId: formData.categoryId,
@@ -240,7 +304,12 @@ export default function EditarEventoPage() {
               onClick={() => router.push("/admin/eventos")}
               className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -258,7 +327,9 @@ export default function EditarEventoPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Información Básica */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Información Básica</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Información Básica
+              </h2>
 
               <div className="space-y-4">
                 {/* Título */}
@@ -328,7 +399,10 @@ export default function EditarEventoPage() {
                     onChange={handleChange}
                     className="w-4 h-4 text-purple-600 bg-zinc-700 border-zinc-600 rounded focus:ring-purple-500"
                   />
-                  <label htmlFor="status" className="text-sm font-medium text-gray-300">
+                  <label
+                    htmlFor="status"
+                    className="text-sm font-medium text-gray-300"
+                  >
                     Evento activo
                   </label>
                 </div>
@@ -337,12 +411,16 @@ export default function EditarEventoPage() {
 
             {/* Fecha y Ubicación */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Fecha y Ubicación</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Fecha y Ubicación
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Fecha */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Fecha *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Fecha *
+                  </label>
                   <input
                     type="date"
                     name="date"
@@ -372,32 +450,64 @@ export default function EditarEventoPage() {
                   </p>
                 </div>
 
-                {/* Ubicación */}
+                {/* Ubicación (3 partes) */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Ubicación *
                   </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="Ej: Teatro Municipal, Calle 123, Ciudad"
-                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                    required
-                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      name="locationCity"
+                      value={formData.locationCity}
+                      onChange={handleChange}
+                      placeholder="Ciudad (ej: Bogotá)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationCountry"
+                      value={formData.locationCountry}
+                      onChange={handleChange}
+                      placeholder="País (ej: Colombia)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationPlace"
+                      value={formData.locationPlace}
+                      onChange={handleChange}
+                      placeholder="Lugar/Dirección (opcional)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-2">
+                    Se guardará como:{" "}
+                    <span className="text-gray-200">
+                      {buildLocation() || "—"}
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Precio y Capacidad */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Precio y Capacidad</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Precio y Capacidad
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Precio */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Precio *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Precio *
+                  </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       $
@@ -437,7 +547,9 @@ export default function EditarEventoPage() {
 
             {/* Imagen */}
             <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Imagen del Evento</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Imagen del Evento
+              </h2>
               <ImageUpload
                 onImageUploaded={handleImageUploaded}
                 currentImage={formData.image}
