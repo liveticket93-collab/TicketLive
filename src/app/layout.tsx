@@ -5,7 +5,10 @@ import Navbar from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { TicketsProvider } from "@/contexts/TIcketsContext"; // ⭐ NUEVO
 import { Toaster } from "sonner";
+import { ChatBot } from "@/components/ui/ChatBot";
 
 
 const inter = Inter({
@@ -29,14 +32,19 @@ export default function RootLayout({
         {/* AuthProvider envuelve toda la app para proveer el contexto de autenticación */}
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            {children}
-            <Footer />
-            {/* Toaster para mostrar notificaciones en toda la app */}
-            <Toaster position="top-right" richColors />
+            <FavoritesProvider>
+              <TicketsProvider> {/* ⭐ AGREGADO */}
+                <Navbar />
+                {children}
+                <Footer />
+                {/* Toaster para mostrar notificaciones en toda la app */}
+                <Toaster position="top-right" richColors />
+                <ChatBot />
+              </TicketsProvider> {/* ⭐ AGREGADO */}
+            </FavoritesProvider>
           </CartProvider>
         </AuthProvider>
       </body>
-    </html >
+    </html>
   );
 }

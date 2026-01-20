@@ -7,6 +7,7 @@ import IEvent from "@/interfaces/event.interface";
 import { useCart } from "@/contexts/CartContext";
 import { useRouter } from "next/navigation";
 import { dateFormatter } from "@/services/events.service";
+import FavoriteButton from "@/components/favorites/FavoriteButton"; // ⭐ AGREGADO
 
 export function EventCard({
   id,
@@ -37,6 +38,23 @@ export function EventCard({
           className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent opacity-80" />
+        
+        {/* ⭐ BOTÓN DE FAVORITO - AGREGADO ⭐ */}
+        <div className="absolute top-4 right-4 z-10">
+          <FavoriteButton 
+            event={{
+              id,
+              title,
+              description,
+              imageUrl,
+              price,
+              date,
+              location,
+              category: categoryId,
+            }} 
+            size="md" 
+          />
+        </div>
       </div>
 
       {/* Content */}

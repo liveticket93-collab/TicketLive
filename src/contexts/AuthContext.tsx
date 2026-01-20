@@ -122,6 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(fullUser);
         saveUserToLocalStorage(fullUser);
+        
+        // ⭐ AGREGAR: Guardar token en localStorage
+        if (response.token) {
+          localStorage.setItem("token", response.token);
+        }
       }
     } catch (error) {
       throw error;
@@ -155,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await logoutUser();
     setUser(null);
     removeUserFromLocalStorage();
+    localStorage.removeItem("token"); // ⭐ AGREGAR: Eliminar token también
     router.push("/login");
   };
 

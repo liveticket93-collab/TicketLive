@@ -1,0 +1,52 @@
+
+--- DEBUG ---
+Result keys: _totalUsage, _finishReason, _rawFinishReason, _steps, outputSpecification, includeRawChunks, tools, addStream, closeStream, baseStream
+Result type: object
+Normalized: [{"role":"user","content":"Hola"}]
+--- END ---
+
+STREAM ERROR: TypeError: result.toDataStreamResponse is not a function
+    at POST (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\[root-of-the-server]__2be2bdaa._.js:69:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async AppRouteRouteModule.do (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37789)
+    at async AppRouteRouteModule.handle (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45045)
+    at async responseGenerator (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9000:38)
+    at async AppRouteRouteModule.handleResponse (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187851)
+    at async handleResponse (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9062:32)
+    at async handler (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9115:13)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1413:9)
+    at async DevServer.renderPageComponent (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1465:24)
+    at async DevServer.renderToResponseImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1515:32)
+    at async DevServer.pipeImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1021:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\next-server.js:394:17)
+    at async DevServer.handleRequestImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:912:17)
+    at async C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\dev\next-dev-server.js:382:20
+    at async Span.traceAsyncFn (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\dev\next-dev-server.js:378:24)
+    at async invokeRender (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:240:21)
+    at async handleRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:484:13)
+    at async Server.requestListener (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\start-server.js:226:13)
+
+GLOBAL ERROR: TypeError: result.toDataStreamResponse is not a function
+    at POST (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\[root-of-the-server]__2be2bdaa._.js:69:27)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async AppRouteRouteModule.do (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37789)
+    at async AppRouteRouteModule.handle (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45045)
+    at async responseGenerator (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9000:38)
+    at async AppRouteRouteModule.handleResponse (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187851)
+    at async handleResponse (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9062:32)
+    at async handler (C:\Users\leona\OneDrive\Escritorio\front\.next\dev\server\chunks\node_modules_next_dist_de4e8ad3._.js:9115:13)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1413:9)
+    at async DevServer.renderPageComponent (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1465:24)
+    at async DevServer.renderToResponseImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1515:32)
+    at async DevServer.pipeImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:1021:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\next-server.js:394:17)
+    at async DevServer.handleRequestImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\base-server.js:912:17)
+    at async C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\dev\next-dev-server.js:382:20
+    at async Span.traceAsyncFn (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\dev\next-dev-server.js:378:24)
+    at async invokeRender (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:240:21)
+    at async handleRequest (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\router-server.js:484:13)
+    at async Server.requestListener (C:\Users\leona\OneDrive\Escritorio\front\node_modules\next\dist\server\lib\start-server.js:226:13)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import ImageUpload from "@/components/imageUpload/ImageUpload";
 import AdminGuard from "@/components/guards/AdminGuard";
 
@@ -12,11 +12,44 @@ interface Category {
   name: string;
 }
 
-export default function CrearEventoPage() {
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  location: string;
+  price: number;
+  capacity: number;
+  categoryId: string;
+  imageUrl: string;
+  status: boolean;
+}
+
+export default function EditarEventoPage() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = params.id as string;
+
   const [loading, setLoading] = useState(false);
+  const [loadingEvent, setLoadingEvent] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Divide la ubicación en tres partes
+  const splitLocation = (location: string) => {
+    const parts = (location ?? "")
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const country = parts.at(-1) ?? "";
+    const city = parts.at(-2) ?? "";
+    const place = parts.slice(0, Math.max(0, parts.length - 2)).join(", ");
+
+    return { place, city, country };
+  };
 
   const [formData, setFormData] = useState({
     title: "",
@@ -24,7 +57,7 @@ export default function CrearEventoPage() {
     date: "",
     time: "",
 
-    // Nuevo: el evento tendrá una sola ubicación divida en tres partes
+    // Divide la ubicación en tres partes
     locationCity: "",
     locationCountry: "",
     locationPlace: "",
@@ -33,8 +66,23 @@ export default function CrearEventoPage() {
     capacity: "",
     categoryId: "",
     image: "",
+    status: true,
   });
 
+  // Construye la ubicación
+  const buildLocation = () => {
+    const parts = [
+      formData.locationPlace,
+      formData.locationCity,
+      formData.locationCountry,
+    ]
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return parts.join(", ");
+  };
+
+  // Cargar categorías
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_URL}/categories`);
@@ -49,34 +97,74 @@ export default function CrearEventoPage() {
     }
   };
 
+  // Cargar datos del evento
+  const fetchEvent = async () => {
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar el evento");
+      }
+
+      const event: Event = await response.json();
+
+      // Extraer fecha y hora del start_time
+      const startDate = new Date(event.start_time);
+      const dateStr = startDate.toISOString().split("T")[0];
+      const timeStr = startDate.toTimeString().slice(0, 5);
+
+      // Divide la ubicación en partes
+      const { place, city, country } = splitLocation(event.location);
+
+      setFormData({
+        title: event.title,
+        description: event.description,
+        date: dateStr,
+        time: timeStr,
+
+        locationCity: city,
+        locationCountry: country,
+        locationPlace: place,
+
+        price: event.price.toString(),
+        capacity: event.capacity.toString(),
+        categoryId: event.categoryId,
+        image: event.imageUrl,
+        status: event.status,
+      });
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      alert("Error al cargar el evento");
+      router.push("/admin/eventos");
+    } finally {
+      setLoadingEvent(false);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
-  }, []);
+    fetchEvent();
+  }, [eventId]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const { name, value, type } = e.target;
+
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData({ ...formData, [name]: checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleImageUploaded = (url: string) => {
     setFormData({ ...formData, image: url });
-  };
-
-  // Nuevo: Construye la ubicación del evento
-  const buildLocation = () => {
-    const parts = [
-      formData.locationPlace,
-      formData.locationCity,
-      formData.locationCountry,
-    ]
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    return parts.join(", ");
   };
 
   const validateForm = () => {
@@ -87,14 +175,12 @@ export default function CrearEventoPage() {
       time,
       locationCity,
       locationCountry,
-      locationPlace,
       price,
       capacity,
       categoryId,
       image,
     } = formData;
 
-    // required fields
     if (
       !title ||
       !description ||
@@ -108,25 +194,17 @@ export default function CrearEventoPage() {
       return false;
     }
 
-    // Ubicación obligatoria (ciudad + país)
+    // ✅ location required (city + country)
     if (!locationCity.trim() || !locationCountry.trim()) {
       alert("Por favor completa Ciudad y País en la ubicación");
       return false;
     }
 
-    // El nombre del sitio es obligatorio
-    if (!locationPlace.trim()) {
-      alert("Por favor completa el Lugar/Dirección del evento");
-      return false;
-    }
-
-    // Validar imagen
     if (!image) {
       alert("Por favor sube una imagen para el evento");
       return false;
     }
 
-    // Validar fecha y hora
     const eventDateTime = new Date(`${date}T${time}`);
     const now = new Date();
 
@@ -135,14 +213,12 @@ export default function CrearEventoPage() {
       return false;
     }
 
-    // Validar precio
     const priceNum = parseFloat(price);
     if (isNaN(priceNum) || priceNum < 0) {
       alert("El precio debe ser un número válido mayor o igual a 0");
       return false;
     }
 
-    // Validar capacidad
     const capacityNum = parseInt(capacity);
     if (isNaN(capacityNum) || capacityNum <= 0) {
       alert("La capacidad debe ser un número entero mayor a 0");
@@ -161,11 +237,10 @@ export default function CrearEventoPage() {
 
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
-
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 2);
 
-      // Nuevo: construir la ubicación
+      // ✅ build single backend location string
       const location = buildLocation();
 
       const eventData = {
@@ -174,16 +249,16 @@ export default function CrearEventoPage() {
         date: startDateTime.toISOString(),
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
-        location, // ✅ composed string sent to backend
+        location, // ✅ composed
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
         categoryId: formData.categoryId,
         imageUrl: formData.image,
-        status: true,
+        status: formData.status,
       };
 
-      const response = await fetch(`${API_URL}/events`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -193,20 +268,31 @@ export default function CrearEventoPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear el evento");
+        throw new Error(errorData.message || "Error al actualizar el evento");
       }
 
-      await response.json();
-
-      alert("✅ Evento creado exitosamente");
+      alert("✅ Evento actualizado exitosamente");
       router.push("/admin/eventos");
     } catch (error: any) {
-      console.error("Error creating event:", error);
-      alert(`❌ Error al crear el evento: ${error.message}`);
+      console.error("Error updating event:", error);
+      alert(`❌ Error al actualizar el evento: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingEvent) {
+    return (
+      <AdminGuard>
+        <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando evento...</p>
+          </div>
+        </div>
+      </AdminGuard>
+    );
+  }
 
   return (
     <AdminGuard>
@@ -215,7 +301,7 @@ export default function CrearEventoPage() {
           {/* Header */}
           <div className="mb-8">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/admin/eventos")}
               className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
               <svg
@@ -233,10 +319,8 @@ export default function CrearEventoPage() {
               </svg>
               Volver
             </button>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Crear Nuevo Evento
-            </h1>
-            <p className="text-gray-400">Completa la información del evento</p>
+            <h1 className="text-4xl font-bold text-white mb-2">Editar Evento</h1>
+            <p className="text-gray-400">Modifica la información del evento</p>
           </div>
 
           {/* Formulario */}
@@ -304,6 +388,24 @@ export default function CrearEventoPage() {
                     )}
                   </select>
                 </div>
+
+                {/* Estado */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="status"
+                    name="status"
+                    checked={formData.status}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 bg-zinc-700 border-zinc-600 rounded focus:ring-purple-500"
+                  />
+                  <label
+                    htmlFor="status"
+                    className="text-sm font-medium text-gray-300"
+                  >
+                    Evento activo
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -348,7 +450,7 @@ export default function CrearEventoPage() {
                   </p>
                 </div>
 
-                {/* Nuevo: Ubicación (3 partes) */}
+                {/* Ubicación (3 partes) */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Ubicación *
@@ -378,9 +480,9 @@ export default function CrearEventoPage() {
                       name="locationPlace"
                       value={formData.locationPlace}
                       onChange={handleChange}
-                      required
-                      placeholder="Nombre del lugar"
+                      placeholder="Lugar/Dirección (opcional)"
                       className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
                     />
                   </div>
 
@@ -459,7 +561,7 @@ export default function CrearEventoPage() {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/admin/eventos")}
                 className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors font-medium"
               >
                 Cancelar
@@ -472,10 +574,10 @@ export default function CrearEventoPage() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                    Creando...
+                    Guardando...
                   </span>
                 ) : (
-                  "Crear Evento"
+                  "Guardar Cambios"
                 )}
               </button>
             </div>
