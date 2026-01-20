@@ -73,7 +73,7 @@ export default function Navbar() {
               Inicio
             </Link>
             <Link
-              href="/eventos"
+              href="/events"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Eventos

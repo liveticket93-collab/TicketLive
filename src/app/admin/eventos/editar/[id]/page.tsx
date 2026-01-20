@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import ImageUpload from "@/components/imageUpload/ImageUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminGuard from "@/components/guards/AdminGuard";
@@ -13,10 +13,29 @@ interface Category {
   name: string;
 }
 
-export default function CrearEventoPage() {
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  location: string;
+  price: number;
+  capacity: number;
+  categoryId: string;
+  imageUrl: string;
+  status: boolean;
+}
+
+export default function EditarEventoPage() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = params.id as string;
   const { user } = useAuth();
+
   const [loading, setLoading] = useState(false);
+  const [loadingEvent, setLoadingEvent] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
@@ -30,8 +49,10 @@ export default function CrearEventoPage() {
     capacity: "",
     categoryId: "",
     image: "",
+    status: true,
   });
 
+  // Cargar categorías
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_URL}/categories`);
@@ -46,16 +67,61 @@ export default function CrearEventoPage() {
     }
   };
 
-  // Cargar categorías al montar el componente
+  // Cargar datos del evento
+  const fetchEvent = async () => {
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar el evento");
+      }
+
+      const event: Event = await response.json();
+
+      // Extraer fecha y hora del start_time
+      const startDate = new Date(event.start_time);
+      const dateStr = startDate.toISOString().split("T")[0];
+      const timeStr = startDate.toTimeString().slice(0, 5);
+
+      setFormData({
+        title: event.title,
+        description: event.description,
+        date: dateStr,
+        time: timeStr,
+        location: event.location,
+        price: event.price.toString(),
+        capacity: event.capacity.toString(),
+        categoryId: event.categoryId,
+        image: event.imageUrl,
+        status: event.status,
+      });
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      alert("Error al cargar el evento");
+      router.push("/admin/eventos");
+    } finally {
+      setLoadingEvent(false);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
-  }, []);
+    fetchEvent();
+  }, [eventId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const { name, value, type } = e.target;
+
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData({ ...formData, [name]: checked });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleImageUploaded = (url: string) => {
@@ -63,21 +129,19 @@ export default function CrearEventoPage() {
   };
 
   const validateForm = () => {
-    const { title, description, date, time, location, price, capacity, categoryId, image } = formData;
+    const { title, description, date, time, location, price, capacity, categoryId, image } =
+      formData;
 
-    // Validar campos requeridos
     if (!title || !description || !date || !time || !location || !price || !capacity || !categoryId) {
       alert("Por favor completa todos los campos obligatorios");
       return false;
     }
 
-    // Validar imagen
     if (!image) {
       alert("Por favor sube una imagen para el evento");
       return false;
     }
 
-    // Validar fecha y hora
     const eventDateTime = new Date(`${date}T${time}`);
     const now = new Date();
 
@@ -86,14 +150,12 @@ export default function CrearEventoPage() {
       return false;
     }
 
-    // Validar precio
     const priceNum = parseFloat(price);
     if (isNaN(priceNum) || priceNum < 0) {
       alert("El precio debe ser un número válido mayor o igual a 0");
       return false;
     }
 
-    // Validar capacidad
     const capacityNum = parseInt(capacity);
     if (isNaN(capacityNum) || capacityNum <= 0) {
       alert("La capacidad debe ser un número entero mayor a 0");
@@ -113,10 +175,7 @@ export default function CrearEventoPage() {
     setLoading(true);
 
     try {
-      // Combinar fecha y hora en formato ISO
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
-      
-      // Calcular end_time (2 horas después del inicio por defecto)
       const endDateTime = new Date(startDateTime);
       endDateTime.setHours(endDateTime.getHours() + 2);
 
@@ -124,19 +183,18 @@ export default function CrearEventoPage() {
         title: formData.title,
         description: formData.description,
         date: startDateTime.toISOString(),
-        start_time: startDateTime.toISOString(),  // ⭐ AGREGADO
-        end_time: endDateTime.toISOString(),      // ⭐ AGREGADO
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
         location: formData.location,
         price: parseFloat(formData.price),
         capacity: parseInt(formData.capacity),
         categoryId: formData.categoryId,
         imageUrl: formData.image,
-        status: true,  // ⭐ AGREGADO (evento activo por defecto)
+        status: formData.status,
       };
 
-
-      const response = await fetch(`${API_URL}/events`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -146,20 +204,31 @@ export default function CrearEventoPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear el evento");
+        throw new Error(errorData.message || "Error al actualizar el evento");
       }
 
-      const newEvent = await response.json();
-      
-      alert("✅ Evento creado exitosamente");
+      alert("✅ Evento actualizado exitosamente");
       router.push("/admin/eventos");
     } catch (error: any) {
-      console.error("Error creating event:", error);
-      alert(`❌ Error al crear el evento: ${error.message}`);
+      console.error("Error updating event:", error);
+      alert(`❌ Error al actualizar el evento: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingEvent) {
+    return (
+      <AdminGuard>
+        <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando evento...</p>
+          </div>
+        </div>
+      </AdminGuard>
+    );
+  }
 
   return (
     <AdminGuard>
@@ -168,16 +237,21 @@ export default function CrearEventoPage() {
           {/* Header */}
           <div className="mb-8">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/admin/eventos")}
               className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Volver
             </button>
-            <h1 className="text-4xl font-bold text-white mb-2">Crear Nuevo Evento</h1>
-            <p className="text-gray-400">Completa la información del evento</p>
+            <h1 className="text-4xl font-bold text-white mb-2">Editar Evento</h1>
+            <p className="text-gray-400">Modifica la información del evento</p>
           </div>
 
           {/* Formulario */}
@@ -243,6 +317,21 @@ export default function CrearEventoPage() {
                     )}
                   </select>
                 </div>
+
+                {/* Estado */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="status"
+                    name="status"
+                    checked={formData.status}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-purple-600 bg-zinc-700 border-zinc-600 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor="status" className="text-sm font-medium text-gray-300">
+                    Evento activo
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -253,9 +342,7 @@ export default function CrearEventoPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Fecha */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Fecha *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Fecha *</label>
                   <input
                     type="date"
                     name="date"
@@ -310,9 +397,7 @@ export default function CrearEventoPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Precio */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Precio *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Precio *</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       $
@@ -364,7 +449,7 @@ export default function CrearEventoPage() {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/admin/eventos")}
                 className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors font-medium"
               >
                 Cancelar
@@ -377,10 +462,10 @@ export default function CrearEventoPage() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                    Creando...
+                    Guardando...
                   </span>
                 ) : (
-                  "Crear Evento"
+                  "Guardar Cambios"
                 )}
               </button>
             </div>

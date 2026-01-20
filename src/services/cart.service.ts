@@ -1,35 +1,100 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const res = await fetch(`${API_URL}${url}`, {
+/**
+ * Obtener el carrito activo del usuario
+ */
+export const getActiveCart = async () => {
+  const response = await fetch(`${API_URL}/cart`, {
+    method: "GET",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    ...options,
   });
 
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Error en carrito");
+  if (!response.ok) {
+    throw new Error("Error al obtener carrito");
   }
 
-  return res.json();
+  return response.json();
 };
 
-export const getCart = () => fetchWithAuth("/cart");
+/**
+ * Obtener el carrito (alias de getActiveCart para compatibilidad)
+ */
+export const getCart = async () => {
+  return getActiveCart();
+};
 
-export const addItemToCart = (eventId: string, quantity = 1) =>
-  fetchWithAuth("/cart/items", {
+/**
+ * Agregar item al carrito
+ */
+export const addItemToCart = async (eventId: string, quantity: number = 1) => {
+  const response = await fetch(`${API_URL}/cart/items`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
     body: JSON.stringify({ eventId, quantity }),
   });
 
-export const removeCartItem = (cartItemId: string) =>
-  fetchWithAuth(`/cart/items/${cartItemId}`, {
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Error al agregar al carrito");
+  }
+
+  return response.json();
+};
+
+/**
+ * Remover item del carrito
+ */
+export const removeCartItem = async (itemId: string) => {
+  const response = await fetch(`${API_URL}/cart/items/${itemId}`, {
     method: "DELETE",
+    credentials: "include",
   });
 
-export const clearCartBackend = () =>
-  fetchWithAuth("/cart", { method: "DELETE" });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Error al eliminar item");
+  }
+
+  return response.json();
+};
+
+/**
+ * Limpiar todo el carrito
+ */
+export const clearCartBackend = async () => {
+  const response = await fetch(`${API_URL}/cart/clear`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Error al limpiar carrito");
+  }
+
+  return response.json();
+};
+
+/**
+ * Actualizar cantidad de un item
+ */
+export const updateCartItemQuantity = async (itemId: string, quantity: number) => {
+  const response = await fetch(`${API_URL}/cart/items/${itemId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ quantity }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Error al actualizar cantidad");
+  }
+
+  return response.json();
+};
