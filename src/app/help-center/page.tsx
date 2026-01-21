@@ -1,4 +1,4 @@
-import { ChevronRight, HelpCircle, MessageCircle, FileText, Shield, CreditCard, Ticket, TicketCheck } from "lucide-react";
+import { ChevronRight, HelpCircle, MessageCircle, FileText, Shield, CreditCard, Ticket, TicketCheck, Search, MousePointerClick, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function HelpCenterPage() {
@@ -23,6 +23,33 @@ export default function HelpCenterPage() {
       icon: <TicketCheck className="w-8 h-8 text-emerald-500" />,
       color: "from-emerald-500/20 to-teal-500/20",
       href: "/security"
+    }
+  ];
+
+  const buyingSteps = [
+    {
+      icon: <Search className="w-6 h-6 text-white" />,
+      title: "1. Encuentra tu evento",
+      description: "Explora nuestra cartelera y usa los filtros para dar con el espectáculo perfecto.",
+      color: "bg-blue-500"
+    },
+    {
+      icon: <MousePointerClick className="w-6 h-6 text-white" />,
+      title: "2. Selecciona tus lugares",
+      description: "Elige la fecha y tus asientos favoritos en nuestro mapa interactivo en tiempo real.",
+      color: "bg-purple-500"
+    },
+    {
+      icon: <CreditCard className="w-6 h-6 text-white" />,
+      title: "3. Pago seguro",
+      description: "Completa tu compra con nuestros métodos de pago encriptados y protegidos.",
+      color: "bg-pink-500"
+    },
+    {
+      icon: <CheckCircle className="w-6 h-6 text-white" />,
+      title: "4. ¡Listo para disfrutar!",
+      description: "Recibe tus tickets digitales al instante en tu correo y en tu perfil.",
+      color: "bg-emerald-500"
     }
   ];
 
@@ -84,6 +111,41 @@ export default function HelpCenterPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* How it Works / Buying Guide Section */}
+          <div className="mb-24">
+             <div className="text-center mb-12">
+               <h2 className="text-3xl md:text-5xl font-black text-white mb-6">
+                 ¿Cómo <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">Comprar?</span>
+               </h2>
+               <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+                 Tu entrada a los mejores eventos en 4 simples pasos.
+               </p>
+             </div>
+             
+             <div className="relative">
+                {/* Connecting Line (Desktop) */}
+                <div className="hidden md:block absolute top-12 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent -z-10" />
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                  {buyingSteps.map((step, index) => (
+                    <div key={index} className="relative group">
+                      <div className={`w-24 h-24 mx-auto mb-6 rounded-full ${step.color} bg-opacity-10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-300 shadow-[0_0_30px_-10px_rgba(255,255,255,0.1)] group-hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)]`}>
+                        <div className={`w-12 h-12 rounded-full ${step.color} flex items-center justify-center shadow-lg`}>
+                           {step.icon}
+                        </div>
+                      </div>
+                      <div className="text-center px-2">
+                        <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">

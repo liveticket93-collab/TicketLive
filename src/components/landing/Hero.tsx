@@ -32,9 +32,11 @@ export function Hero() {
            <Button size="lg" className="h-14 px-8 text-lg min-w-[200px]">
              Explorar eventos
            </Button>
-           <Button variant="outline" size="lg" className="h-14 px-8 text-lg min-w-[200px]">
-             Cómo funciona
-           </Button>
+           <Link href="/help-center">
+             <Button variant="outline" size="lg" className="h-14 px-8 text-lg min-w-[200px]">
+               Cómo funciona
+             </Button>
+           </Link>
         </div>
         
         {/* Stats or Trusted By */}
