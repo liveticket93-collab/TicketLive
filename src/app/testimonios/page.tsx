@@ -1,8 +1,13 @@
-import { Star, Quote, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
+"use client";
 
-// Mover los datos fuera del componente evita que se re-declaren en cada render
-const testimonials = [
+import { useEffect, useState } from "react";
+import { Star, Quote, CheckCircle2, ImageIcon } from "lucide-react";
+import Image from "next/image";
+import CommentForm from "@/components/testimonials/CommentForm";
+import { getComments, Comment } from "@/services/comments.service";
+
+// Static initial data (moved outside component)
+const initialTestimonials = [
   {
     name: "Alejandra Torres",
     role: "Fan de la Música",
@@ -29,39 +34,34 @@ const testimonials = [
     rating: 5,
     event: "Obra: El Código Invisible",
     verified: true
-  },
-  {
-    name: "Roberto Sánchez",
-    role: "Tech Professional",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200",
-    content: "Asistí a la Tech Summit y el proceso de acreditación con TicketLive fue impecable. Muy recomendado por su rapidez.",
-    rating: 4,
-    event: "Tech Summit 2026",
-    verified: true
-  },
-  {
-    name: "Sofía Martínez",
-    role: "Concert Goer",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
-    content: "Excelente soporte al cliente vía WhatsApp. Tuve una duda con mi pago y me lo resolvieron en 5 minutos. ¡Geniales!",
-    rating: 5,
-    event: "Concierto de Rock",
-    verified: true
-  },
-  {
-    name: "Martín Gómez",
-    role: "Developer",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
-    content: "Como desarrollador, valoro mucho la fluidez de la interfaz. Se nota que hay un trabajo de UX de primer nivel.",
-    rating: 5,
-    event: "Hacker Night",
-    verified: true
   }
 ];
 
 export default function TestimoniosPage() {
+  const [dynamicComments, setDynamicComments] = useState<Comment[]>([]);
+  const [allTestimonials, setAllTestimonials] = useState<any[]>(initialTestimonials);
+
+  const fetchComments = async () => {
+    try {
+      const comments = await getComments();
+      // Reverse to show newest first, then merge with static
+      setDynamicComments(comments.reverse());
+    } catch (error) {
+      console.error("Error fetching comments", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, []);
+
+  // Update displayed list when dynamic comments change
+  useEffect(() => {
+    setAllTestimonials([...dynamicComments, ...initialTestimonials]);
+  }, [dynamicComments]);
+
   return (
-    <main className="min-h-screen pt-20 pb-16 relative overflow-hidden bg-zinc-950"> {/* Agregué bg-zinc-950 para ver mejor el efecto dark */}
+    <main className="min-h-screen pt-20 pb-16 relative overflow-hidden bg-zinc-950"> 
       
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -70,26 +70,31 @@ export default function TestimoniosPage() {
       </div>
 
       <div className="container relative z-10 mx-auto px-4 md:px-6">
-        <div className="text-center max-w-3xl mx-auto mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-sm font-medium mb-6 backdrop-blur-sm">
-            <Star className="h-4 w-4 fill-primary text-primary" /> {/* Asegurar color consistente */}
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-purple-400 text-sm font-medium mb-6 backdrop-blur-sm">
+            <Star className="h-4 w-4 fill-purple-400 text-purple-400" />
             <span>+10,000 Fans Satisfechos</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-            Lo que dicen <br /> <span className="text-purple-400">nuestros fans</span> {/* Ajusté text-primary a un color visible si no tienes variable CSS */}
+            Lo que dicen <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">nuestros fans</span>
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed text-zinc-400">
+          <p className="text-lg text-zinc-400 leading-relaxed">
             Nuestra mayor recompensa es ser parte de tus mejores recuerdos. Descubre por qué miles de usuarios confían en TicketLive.
           </p>
         </div>
 
+        {/* Comment Form Section */}
+        <div className="mb-20">
+          <CommentForm onCommentAdded={fetchComments} />
+        </div>
+
         {/* Testimonials Masonry/Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-          {testimonials.map((t, i) => (
+          {allTestimonials.map((t, i) => (
             <div 
-              key={i} 
-              className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-purple-500/30 transition-all group relative animate-in fade-in slide-in-from-bottom-5 duration-700 hover:-translate-y-1"
-              style={{ animationDelay: `${i * 100}ms` }}
+              key={t.id || i} // Use ID if available (dynamic), else index
+              className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-purple-500/30 transition-all group relative animate-in fade-in slide-in-from-bottom-5 duration-700 hover:-translate-y-1 flex flex-col"
+              style={{ animationDelay: `${(i % 6) * 100}ms` }}
             >
               <div className="absolute -top-4 -left-4 h-10 w-10 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <Quote className="h-5 w-5 fill-current" />
@@ -104,17 +109,31 @@ export default function TestimoniosPage() {
                 ))}
               </div>
 
-              <p className="text-zinc-300 leading-relaxed mb-8 italic">
+              <p className="text-zinc-300 leading-relaxed mb-6 italic flex-grow">
                 "{t.content}"
               </p>
 
-              <div className="flex items-center gap-4 border-t border-white/5 pt-6">
+              {/* Event Photo if available */}
+              {t.eventImage && (
+                <div className="mb-6 relative w-full h-40 rounded-xl overflow-hidden border border-white/5 group-hover:border-purple-500/20 transition-colors">
+                  <Image 
+                    src={t.eventImage} 
+                    alt={`Foto del evento de ${t.name}`}
+                    fill
+                    className="object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute bottom-2 right-2 p-1 bg-black/50 backdrop-blur-md rounded-full">
+                    <ImageIcon className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 border-t border-white/5 pt-6 mt-auto">
                 <div className="relative h-12 w-12 flex-shrink-0">
-                  {/* OPTIMIZACIÓN: Uso de Next/Image */}
                   <Image 
                     src={t.image} 
                     alt={t.name}
-                    width={48} // Define dimensiones explícitas para evitar layout shift
+                    width={48}
                     height={48}
                     className="rounded-full object-cover border-2 border-purple-500/20 h-full w-full"
                   />
