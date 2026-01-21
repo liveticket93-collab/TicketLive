@@ -21,7 +21,7 @@ Usá Markdown para estructurar tu respuesta.
 IMPORTANTE: Siempre usá títulos (## o ###) para los nombres de los eventos y negrita (**) para datos clave como precios o fechas.
 Si no sabés algo, decilo con honestidad.
 Tenés acceso a herramientas para consultar eventos reales y categorías. Úsalas cuando el usuario pregunte por eventos, fechas, precios o disponibilidad.
-      `.trim(),
+        `.trim(),
             // @ts-expect-error maxSteps es requerido para la ejecución de herramientas en el servidor en versiones nuevas del SDK, a pesar del error de tipos
             maxSteps: 5, // Habilita iteraciones de múltiples pasos para las herramientas
             tools: {

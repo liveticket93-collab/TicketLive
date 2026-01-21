@@ -63,7 +63,7 @@ export default function EventMap({ lat, lon, title }: Props) {
     if (title) {
       marker.setPopup(new Popup({ offset: 20 }).setText(title));
     } else {
-      marker.setPopup(undefined as any);
+      marker.setPopup(undefined);
     }
 
     // ✅ Move camera
