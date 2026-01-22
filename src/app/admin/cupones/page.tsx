@@ -1,423 +1,518 @@
 "use client";
 
-import AdminGuard from "@/components/guards/AdminGuard";
 import { useState, useEffect } from "react";
-import { getAllCoupons, createCoupon } from "@/services/coupon.service";
-import { Coupon, CouponType } from "@/interfaces/coupon.interface";
+import { Plus, Trash2, Edit, X, Tag, TrendingDown, Loader2, AlertTriangle } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+interface Coupon {
+  id: string;
+  code: string;
+  type: 'PERCENT' | 'FIXED';
+  value: number;
+  isActive: boolean;
+  maxRedemptions: number;
+  createdAt: string;
+  updatedAt: string;
+  events?: Array<{ id: string; title: string }>;
+  categories?: Array<{ id: string; name: string }>;
+}
+
+interface CouponFormData {
+  code: string;
+  type: 'PERCENT' | 'FIXED';
+  value: number;
+  maxRedemptions: number;
+  isActive: boolean;
+}
 
 export default function AdminCuponesPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formData, setFormData] = useState({
-    code: "",
-    type: CouponType.PERCENT,
-    value: "",
-    maxRedemptions: "10",
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState<Coupon | null>(null);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [formData, setFormData] = useState<CouponFormData>({
+    code: '',
+    type: 'PERCENT',
+    value: 0,
+    maxRedemptions: 10,
+    isActive: true,
   });
-  const [processing, setProcessing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchCoupons();
+    loadCoupons();
   }, []);
 
-  const fetchCoupons = async () => {
+  const loadCoupons = async () => {
     try {
       setLoading(true);
-      const data = await getAllCoupons();
-      setCoupons(data);
-      setError(null);
-    } catch (err: any) {
-      console.error("Error fetching coupons:", err);
-      setError(err.message || "Error al cargar cupones");
+      const response = await fetch(`${API_URL}/coupons`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCoupons(data);
+      }
+    } catch (err) {
+      console.error('Error loading coupons:', err);
+      showToast("Error al cargar cupones", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const getUsedRedemptions = (coupon: Coupon): number => {
-    if (!coupon.redemptions) return 0;
-    return coupon.redemptions.filter(
-      (r) => r.status === "RESERVED" || r.status === "APPLIED"
-    ).length;
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+      type === 'success' ? 'bg-green-600' : 'bg-red-600'
+    } text-white`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   };
 
-  const handleCreateCoupon = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.code.trim() || !formData.value) {
-      alert("Por favor completa todos los campos obligatorios");
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      await createCoupon({
-        code: formData.code.trim().toUpperCase(),
-        type: formData.type,
-        value: parseInt(formData.value),
-        maxRedemptions: parseInt(formData.maxRedemptions),
-      });
-
-      await fetchCoupons();
-      setSuccessMessage(`Cupón "${formData.code}" creado exitosamente`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-      setShowCreateModal(false);
-      setFormData({
-        code: "",
-        type: CouponType.PERCENT,
-        value: "",
-        maxRedemptions: "10",
-      });
-    } catch (err: any) {
-      console.error("Error:", err);
-      alert(`Error: ${err.message}`);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-AR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+  const openCreateModal = () => {
+    setEditingCoupon(null);
+    setFormData({
+      code: '',
+      type: 'PERCENT',
+      value: 0,
+      maxRedemptions: 10,
+      isActive: true,
     });
+    setIsModalOpen(true);
   };
 
-  if (loading) {
-    return (
-      <AdminGuard>
-        <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando cupones...</p>
-          </div>
-        </div>
-      </AdminGuard>
-    );
-  }
+  const openEditModal = (coupon: Coupon) => {
+    setEditingCoupon(coupon);
+    setFormData({
+      code: coupon.code,
+      type: coupon.type,
+      value: coupon.value,
+      maxRedemptions: coupon.maxRedemptions,
+      isActive: coupon.isActive,
+    });
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingCoupon(null);
+  };
+
+  const openDeleteModal = (coupon: Coupon) => {
+    setCouponToDelete(coupon);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setCouponToDelete(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const url = editingCoupon
+        ? `${API_URL}/coupons/${editingCoupon.id}`
+        : `${API_URL}/coupons`;
+
+      const method = editingCoupon ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        showToast(editingCoupon ? 'Cupón actualizado' : 'Cupón creado', 'success');
+        closeModal();
+        loadCoupons();
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Error al guardar cupón', 'error');
+      }
+    } catch (err) {
+      console.error('Error saving coupon:', err);
+      showToast('Error al guardar cupón', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!couponToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`${API_URL}/coupons/${couponToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        showToast('Cupón eliminado correctamente', 'success');
+        closeDeleteModal();
+        loadCoupons();
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Error al eliminar cupón', 'error');
+      }
+    } catch (err) {
+      console.error('Error deleting coupon:', err);
+      showToast('Error al eliminar cupón', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleToggleActive = async (coupon: Coupon) => {
+    try {
+      const response = await fetch(`${API_URL}/coupons/${coupon.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isActive: !coupon.isActive,
+        }),
+      });
+
+      if (response.ok) {
+        showToast(coupon.isActive ? 'Cupón desactivado' : 'Cupón activado', 'success');
+        loadCoupons();
+      } else {
+        const error = await response.json();
+        showToast(error.message || 'Error al cambiar estado', 'error');
+      }
+    } catch (err) {
+      console.error('Error toggling active:', err);
+      showToast('Error al cambiar estado', 'error');
+    }
+  };
 
   return (
-    <AdminGuard>
-      <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black py-8 px-4">
-        <div className="max-w-7xl mx-auto">
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mb-4 p-4 bg-green-500/10 border border-green-500/50 rounded-lg text-green-400">
-              ✓ {successMessage}
-            </div>
-          )}
+    <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black px-4 py-16">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Administración de Cupones
+            </h1>
+            <p className="text-gray-400">
+              Gestiona todos los cupones de descuento
+            </p>
+          </div>
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            Crear Cupón
+          </button>
+        </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
-              ✗ {error}
-            </div>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="bg-zinc-800/50 rounded-xl p-6 border border-purple-500/20">
+            <p className="text-gray-400 text-sm mb-1">Total Cupones</p>
+            <p className="text-3xl font-bold text-white">{coupons.length}</p>
+          </div>
+          <div className="bg-zinc-800/50 rounded-xl p-6 border border-green-500/20">
+            <p className="text-gray-400 text-sm mb-1">Activos</p>
+            <p className="text-3xl font-bold text-green-400">
+              {coupons.filter(c => c.isActive).length}
+            </p>
+          </div>
+          <div className="bg-zinc-800/50 rounded-xl p-6 border border-red-500/20">
+            <p className="text-gray-400 text-sm mb-1">Inactivos</p>
+            <p className="text-3xl font-bold text-red-400">
+              {coupons.filter(c => !c.isActive).length}
+            </p>
+          </div>
+        </div>
 
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
-                Gestión de Cupones
-              </h1>
-              <p className="text-gray-400">Administra los cupones de descuento</p>
-            </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="text-center py-12 bg-zinc-800/50 rounded-xl border border-zinc-700">
+            <Tag className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400">No hay cupones creados</p>
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-bold flex items-center gap-2"
+              onClick={openCreateModal}
+              className="mt-4 text-purple-400 hover:text-purple-300"
             >
-              <span className="text-xl">+</span>
-              Crear Cupón
+              Crear el primero
             </button>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <p className="text-gray-400 text-sm mb-1">Total Cupones</p>
-              <p className="text-3xl font-bold text-white">{coupons.length}</p>
-            </div>
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <p className="text-gray-400 text-sm mb-1">Activos</p>
-              <p className="text-3xl font-bold text-green-400">
-                {coupons.filter((c) => c.isActive).length}
-              </p>
-            </div>
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <p className="text-gray-400 text-sm mb-1">Inactivos</p>
-              <p className="text-3xl font-bold text-red-400">
-                {coupons.filter((c) => !c.isActive).length}
-              </p>
-            </div>
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
-              <p className="text-gray-400 text-sm mb-1">Total Usos</p>
-              <p className="text-3xl font-bold text-blue-400">
-                {coupons.reduce((sum, c) => sum + getUsedRedemptions(c), 0)}
-              </p>
-            </div>
-          </div>
-
-          {/* Coupons Grid */}
-          {coupons.length === 0 ? (
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-12 text-center">
-              <div className="w-16 h-16 bg-zinc-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🎫</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                No hay cupones creados
-              </h3>
-              <p className="text-gray-400 mb-6">
-                Crea tu primer cupón para comenzar
-              </p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-bold"
-              >
-                Crear Primer Cupón
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {coupons.map((coupon) => {
-                const used = getUsedRedemptions(coupon);
-                const usagePercent = Math.round((used / coupon.maxRedemptions) * 100);
-                const isExpired = used >= coupon.maxRedemptions;
-
-                return (
-                  <div
-                    key={coupon.id}
-                    className="bg-zinc-800/50 border border-zinc-700 rounded-xl overflow-hidden"
-                  >
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/80 text-sm font-medium">
-                          CUPÓN
-                        </span>
-                        {coupon.isActive && !isExpired ? (
-                          <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full font-bold">
-                            ● ACTIVO
-                          </span>
-                        ) : isExpired ? (
-                          <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold">
-                            ⏰ AGOTADO
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-gray-500 text-white text-xs rounded-full font-bold">
-                            ⏸ INACTIVO
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-2xl font-mono font-bold text-white tracking-wider">
-                        {coupon.code}
-                      </h3>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      {/* Discount */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="text-gray-400 text-sm">Descuento</p>
-                          <p className="text-2xl font-bold text-purple-400">
-                            {coupon.type === CouponType.PERCENT
-                              ? `${coupon.value}%`
-                              : `$${coupon.value}`}
-                          </p>
+        ) : (
+          <div className="bg-zinc-800/50 rounded-xl border border-zinc-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-700">
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Código</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Tipo</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Valor</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Límite</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400">Estado</th>
+                    <th className="px-6 py-4 text-right text-sm font-medium text-gray-400">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-700">
+                  {coupons.map((coupon) => (
+                    <tr key={coupon.id} className="hover:bg-zinc-700/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Tag className="w-4 h-4 text-purple-400" />
+                          <span className="font-mono font-bold text-white">{coupon.code}</span>
                         </div>
-                        <div
-                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            coupon.type === CouponType.PERCENT
-                              ? "bg-blue-500/20"
-                              : "bg-green-500/20"
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-300">
+                          {coupon.type === 'PERCENT' ? 'Porcentaje' : 'Fijo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <TrendingDown className="w-4 h-4 text-green-400" />
+                          <span className="font-bold text-white">
+                            {coupon.type === 'PERCENT' ? `${coupon.value}%` : `$${coupon.value}`}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-300">{coupon.maxRedemptions} usos</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggleActive(coupon)}
+                          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            coupon.isActive
+                              ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                              : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                           }`}
                         >
-                          <span className="text-2xl">
-                            {coupon.type === CouponType.PERCENT ? "%" : "$"}
-                          </span>
+                          {coupon.isActive ? 'Activo' : 'Inactivo'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(coupon)}
+                            className="p-2 hover:bg-zinc-600 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(coupon)}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-gray-400 hover:text-red-400"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                      </div>
-
-                      {/* Usage */}
-                      <div className="mb-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-400">Usos</span>
-                          <span className="text-white font-medium">
-                            {used} / {coupon.maxRedemptions}
-                          </span>
-                        </div>
-                        <div className="w-full bg-zinc-700 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${
-                              usagePercent >= 100
-                                ? "bg-red-500"
-                                : usagePercent >= 75
-                                ? "bg-orange-500"
-                                : "bg-green-500"
-                            }`}
-                            style={{ width: `${Math.min(usagePercent, 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Date */}
-                      <div className="text-sm text-gray-400">
-                        <span className="mr-2">📅</span>
-                        Creado: {formatDate(coupon.createdAt)}
-                      </div>
-
-                      {/* Restrictions */}
-                      {((coupon.events && coupon.events.length > 0) ||
-                        (coupon.categories && coupon.categories.length > 0)) && (
-                        <div className="mt-4 p-3 bg-zinc-700/30 rounded-lg">
-                          <p className="text-xs text-gray-400 mb-1">Restricciones:</p>
-                          {coupon.events && coupon.events.length > 0 && (
-                            <p className="text-sm text-white">
-                              📅 {coupon.events.length} evento(s)
-                            </p>
-                          )}
-                          {coupon.categories && coupon.categories.length > 0 && (
-                            <p className="text-sm text-white">
-                              🏷️ {coupon.categories.length} categoría(s)
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-          <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-center mb-4">
-              <div className="p-3 rounded-full bg-green-500/10">
-                <span className="text-4xl">🎟️</span>
-              </div>
+      {/* Modal Crear/Editar */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 rounded-2xl max-w-md w-full border border-zinc-700">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-700">
+              <h2 className="text-xl font-bold text-white">
+                {editingCoupon ? 'Editar Cupón' : 'Crear Nuevo Cupón'}
+              </h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <h3 className="text-xl font-bold text-white text-center mb-4">
-              Crear Nuevo Cupón
-            </h3>
-
-            <form onSubmit={handleCreateCoupon} className="space-y-4 mb-6">
-              {/* Code */}
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Código del Cupón *
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Código del Cupón</label>
                 <input
                   type="text"
                   value={formData.code}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value.toUpperCase() })
-                  }
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   placeholder="VERANO2026"
-                  maxLength={50}
-                  className="w-full px-3 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white font-mono focus:outline-none focus:border-purple-500 uppercase"
-                  required
                 />
               </div>
 
-              {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Tipo de Descuento *
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Tipo de Descuento</label>
                 <select
                   value={formData.type}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      type: e.target.value as CouponType,
-                    })
-                  }
-                  className="w-full px-3 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'PERCENT' | 'FIXED' })}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
-                  <option value={CouponType.PERCENT}>Porcentaje (%)</option>
-                  <option value={CouponType.FIXED}>Monto Fijo ($)</option>
+                  <option value="PERCENT">Porcentaje (%)</option>
+                  <option value="FIXED">Monto Fijo ($)</option>
                 </select>
               </div>
 
-              {/* Value */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Valor del Descuento *
+                  Valor {formData.type === 'PERCENT' ? '(%)' : '($)'}
                 </label>
                 <input
                   type="number"
                   value={formData.value}
-                  onChange={(e) =>
-                    setFormData({ ...formData, value: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, value: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   min="1"
-                  max={formData.type === CouponType.PERCENT ? "100" : undefined}
-                  placeholder={formData.type === CouponType.PERCENT ? "10" : "1000"}
-                  className="w-full px-3 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  required
+                  max={formData.type === 'PERCENT' ? 100 : undefined}
                 />
-                {formData.type === CouponType.PERCENT && (
-                  <p className="text-xs text-gray-500 mt-1">Máximo 100%</p>
-                )}
               </div>
 
-              {/* Max Redemptions */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Máximo de Usos *
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Límite de Usos</label>
                 <input
                   type="number"
                   value={formData.maxRedemptions}
-                  onChange={(e) =>
-                    setFormData({ ...formData, maxRedemptions: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, maxRedemptions: parseInt(e.target.value) || 10 })}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   min="1"
-                  placeholder="10"
-                  className="w-full px-3 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  required
                 />
               </div>
-            </form>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                disabled={processing}
-                className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateCoupon}
-                disabled={processing}
-                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {processing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                    Creando...
-                  </>
-                ) : (
-                  "Crear Cupón"
-                )}
-              </button>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-purple-600"
+                />
+                <label htmlFor="isActive" className="text-sm text-gray-300">Cupón activo</label>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-all disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Guardando...
+                    </span>
+                  ) : (
+                    editingCoupon ? 'Actualizar' : 'Crear Cupón'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </AdminGuard>
+
+      {/* Modal Eliminar */}
+      {isDeleteModalOpen && couponToDelete && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 rounded-2xl max-w-md w-full border border-red-500/30">
+            <div className="flex items-center gap-3 p-6 border-b border-zinc-700">
+              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">¿Eliminar cupón?</h2>
+                <p className="text-sm text-gray-400 mt-1">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="bg-zinc-800/50 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400">Código:</span>
+                  <span className="font-mono font-bold text-white">{couponToDelete.code}</span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400">Descuento:</span>
+                  <span className="font-bold text-purple-400">
+                    {couponToDelete.type === 'PERCENT' 
+                      ? `${couponToDelete.value}%` 
+                      : `$${couponToDelete.value}`
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">Estado:</span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    couponToDelete.isActive
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {couponToDelete.isActive ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-400 mb-6">
+                Al eliminar este cupón, los usuarios ya no podrán utilizarlo. 
+                Si prefieres mantener el historial, considera desactivarlo en su lugar.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Eliminando...
+                    </span>
+                  ) : (
+                    'Eliminar cupón'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

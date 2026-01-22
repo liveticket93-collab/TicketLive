@@ -5,12 +5,44 @@ import { Input } from "@/components/ui/Input";
 import { Mail, Phone, MapPin, Send, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
+import { useState } from "react";
+// ... imports
+
 export default function ContactPage() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Mensaje enviado correctamente", {
-      description: "Nuestro equipo se pondrá en contacto contigo muy pronto."
-    });
+    setIsSubmitting(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const data = {
+        name: formData.get("name"),
+        email: formData.get("email"),
+        subject: formData.get("subject"),
+        message: formData.get("message"),
+    };
+
+    try {
+        const res = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+
+        if (!res.ok) throw new Error("Error al enviar el mensaje");
+
+        toast.success("Mensaje enviado correctamente", {
+            description: "Nuestro equipo se pondrá en contacto contigo muy pronto."
+        });
+        (e.target as HTMLFormElement).reset();
+    } catch (error) {
+        toast.error("Error al enviar", {
+            description: "Inténtalo de nuevo más tarde."
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -61,18 +93,36 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-400 ml-1">Nombre</label>
-                    <Input placeholder="Tu nombre..." required className="bg-black/40 border-white/5 h-14 rounded-2xl" />
+                    <Input 
+                      name="name" 
+                      placeholder="Tu nombre..." 
+                      required 
+                      disabled={isSubmitting}
+                      className="bg-black/40 border-white/5 h-14 rounded-2xl" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-400 ml-1">Email</label>
-                    <Input type="email" placeholder="tu@correo.com" required className="bg-black/40 border-white/5 h-14 rounded-2xl" />
+                    <Input 
+                      name="email" 
+                      type="email" 
+                      placeholder="tu@correo.com" 
+                      required 
+                      disabled={isSubmitting}
+                      className="bg-black/40 border-white/5 h-14 rounded-2xl" 
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-400 ml-1">Asunto</label>
                     <div className="relative">
-                      <select className="w-full bg-black/40 border border-white/5 rounded-2xl h-14 px-4 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all">
+                      <select 
+                        name="subject"
+                        required
+                        disabled={isSubmitting}
+                        className="w-full bg-black/40 border border-white/5 rounded-2xl h-14 px-4 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                      >
                         <option>Consulta General</option>
                         <option>Soporte Técnico</option>
                         <option>Ventas</option>
@@ -86,15 +136,28 @@ export default function ContactPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-400 ml-1">Mensaje</label>
                   <textarea 
+                    name="message"
+                    required
+                    disabled={isSubmitting}
                     className="w-full bg-black/40 border border-white/5 rounded-2xl p-6 min-h-[160px] text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-muted-foreground"
                     placeholder="¿En qué podemos ayudarte?"
-                    required
                   ></textarea>
                 </div>
 
-                <Button size="lg" className="w-full h-16 text-xl gap-3 bg-[#8B5CF6] hover:bg-[#7C3AED] shadow-[0_10px_40px_-10px_rgba(139,92,246,0.5)] rounded-3xl" type="submit">
-                  <Send className="w-6 h-6" />
-                  Enviar Mensaje
+                <Button 
+                  size="lg" 
+                  disabled={isSubmitting}
+                  className="w-full h-16 text-xl gap-3 bg-[#8B5CF6] hover:bg-[#7C3AED] shadow-[0_10px_40px_-10px_rgba(139,92,246,0.5)] rounded-3xl" 
+                  type="submit"
+                >
+                  {isSubmitting ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Send className="w-6 h-6" />
+                      Enviar Mensaje
+                    </>
+                  )}
                 </Button>
               </form>
             </div>

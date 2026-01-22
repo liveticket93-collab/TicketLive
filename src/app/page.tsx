@@ -8,11 +8,27 @@ import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 
 export default function Home() {
-  const handleSubscribe = (formData: FormData) => {
-    // In a real app we would send the data
-    toast.success("¡Suscrito exitosamente!", {
-      description: "Serás el primero en enterarte de nuevos eventos.",
-    });
+  const handleSubscribe = async (formData: FormData) => {
+    const email = formData.get("email");
+    if (!email) return;
+
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) throw new Error("Error al suscribirse");
+
+      toast.success("¡Suscrito exitosamente!", {
+        description: "Serás el primero en enterarte de nuevos eventos.",
+      });
+    } catch (error) {
+      toast.error("Hubo un error", {
+        description: "Por favor intenta nuevamente más tarde.",
+      });
+    }
   };
 
   return (
