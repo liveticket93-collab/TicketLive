@@ -3,7 +3,8 @@ import { streamText, convertToModelMessages, tool, stepCountIs } from "ai";
 import { z } from "zod";
 import { getEvents, getEventCategories, dateFormatter } from "@/services/events.service";
 
-export const maxDuration = 30;
+// Aumentamos maxDuration para permitir ejecuciones de herramientas más largas (ej. consultas a BD)
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     try {

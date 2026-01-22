@@ -1,139 +1,186 @@
 "use client";
 
-import AdminGuard from "@/components/guards/AdminGuard";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getEventCategories, ICategory } from "@/services/events.service";
+import ImageUpload from "@/components/imageUpload/ImageUpload";
+import AdminGuard from "@/components/guards/AdminGuard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+interface Category {
+  id: string;
+  name: string;
+}
 
 export default function CrearEventoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>(""); // CAMBIO: singular
-  
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
-    start_time: "",
-    end_time: "",
-    location: "",
-    capacity: "",
+    time: "",
+
+    // Nuevo: el evento tendrá una sola ubicación divida en tres partes
+    locationCity: "",
+    locationCountry: "",
+    locationPlace: "",
+
     price: "",
-    imageUrl: "",
-    status: true,
+    capacity: "",
+    categoryId: "",
+    image: "",
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Cargar categorías al montar el componente
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const data = await getEventCategories();
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_URL}/categories`);
+      if (response.ok) {
+        const data = await response.json();
         setCategories(data);
-      } catch (error) {
-        console.error("Error loading categories:", error);
-      } finally {
-        setLoadingCategories(false);
       }
-    };
+    } catch (error) {
+      console.error("Error loading categories:", error);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
-    loadCategories();
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
-  // Validar formato de hora (HH:MM)
-  const validateTimeFormat = (time: string): boolean => {
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    return timeRegex.test(time);
-  };
-
-  // Manejar input de hora (solo números y ":")
-  const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
-    
-    // Permitir solo números y ":"
-    const filteredValue = value.replace(/[^0-9:]/g, "");
-    
-    // Limitar a formato HH:MM
-    let formattedValue = filteredValue;
-    if (filteredValue.length > 5) {
-      formattedValue = filteredValue.slice(0, 5);
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
-
-    // Validar si está completo
-    if (formattedValue.length === 5) {
-      if (!validateTimeFormat(formattedValue)) {
-        setErrors((prev) => ({ ...prev, [name]: "Formato inválido. Use HH:MM (ej: 14:30)" }));
-      } else {
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[name];
-          return newErrors;
-        });
-      }
-    }
+    setFormData({ ...formData, [name]: value });
   };
 
-  // Combinar fecha + hora en formato ISO 8601
-  const combineDateTime = (date: string, time: string): string => {
-    // date: "2026-02-15"
-    // time: "14:30"
-    // resultado: "2026-02-15T14:30:00"
-    return `${date}T${time}:00`;
+  const handleImageUploaded = (url: string) => {
+    setFormData({ ...formData, image: url });
+  };
+
+  // Nuevo: Construye la ubicación del evento
+  const buildLocation = () => {
+    const parts = [
+      formData.locationPlace,
+      formData.locationCity,
+      formData.locationCountry,
+    ]
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return parts.join(", ");
+  };
+
+  const validateForm = () => {
+    const {
+      title,
+      description,
+      date,
+      time,
+      locationCity,
+      locationCountry,
+      locationPlace,
+      price,
+      capacity,
+      categoryId,
+      image,
+    } = formData;
+
+    // required fields
+    if (
+      !title ||
+      !description ||
+      !date ||
+      !time ||
+      !price ||
+      !capacity ||
+      !categoryId
+    ) {
+      alert("Por favor completa todos los campos obligatorios");
+      return false;
+    }
+
+    // Ubicación obligatoria (ciudad + país)
+    if (!locationCity.trim() || !locationCountry.trim()) {
+      alert("Por favor completa Ciudad y País en la ubicación");
+      return false;
+    }
+
+    // El nombre del sitio es obligatorio
+    if (!locationPlace.trim()) {
+      alert("Por favor completa el Lugar/Dirección del evento");
+      return false;
+    }
+
+    // Validar imagen
+    if (!image) {
+      alert("Por favor sube una imagen para el evento");
+      return false;
+    }
+
+    // Validar fecha y hora
+    const eventDateTime = new Date(`${date}T${time}`);
+    const now = new Date();
+
+    if (eventDateTime < now) {
+      alert("La fecha y hora del evento no pueden ser en el pasado");
+      return false;
+    }
+
+    // Validar precio
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      alert("El precio debe ser un número válido mayor o igual a 0");
+      return false;
+    }
+
+    // Validar capacidad
+    const capacityNum = parseInt(capacity);
+    if (isNaN(capacityNum) || capacityNum <= 0) {
+      alert("La capacidad debe ser un número entero mayor a 0");
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones
-    const newErrors: Record<string, string> = {};
 
-    if (!formData.start_time || !validateTimeFormat(formData.start_time)) {
-      newErrors.start_time = "Hora de inicio inválida (formato: HH:MM)";
-    }
-
-    if (!formData.end_time || !validateTimeFormat(formData.end_time)) {
-      newErrors.end_time = "Hora de fin inválida (formato: HH:MM)";
-    }
-
-    if (!selectedCategory) {
-      newErrors.category = "Selecciona una categoría";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // Combinar fecha + hora en formato ISO 8601
-      const startDateTime = combineDateTime(formData.date, formData.start_time);
-      const endDateTime = combineDateTime(formData.date, formData.end_time);
+      const startDateTime = new Date(`${formData.date}T${formData.time}`);
 
-      const payload = {
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setHours(endDateTime.getHours() + 2);
+
+      // Nuevo: construir la ubicación
+      const location = buildLocation();
+
+      const eventData = {
         title: formData.title,
         description: formData.description,
-        date: formData.date,
-        start_time: startDateTime, // ISO 8601
-        end_time: endDateTime,     // ISO 8601
-        location: formData.location,
-        capacity: parseInt(formData.capacity),
+        date: startDateTime.toISOString(),
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location, // ✅ composed string sent to backend
         price: parseFloat(formData.price),
-        imageUrl: formData.imageUrl,
-        status: formData.status,
-        categoryId: selectedCategory, // UUID singular
+        capacity: parseInt(formData.capacity),
+        categoryId: formData.categoryId,
+        imageUrl: formData.image,
+        status: true,
       };
-
-      console.log("Enviando:", payload); // Para debug
 
       const response = await fetch(`${API_URL}/events`, {
         method: "POST",
@@ -141,291 +188,296 @@ export default function CrearEventoPage() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(payload),
+        body: JSON.stringify(eventData),
       });
 
-      if (response.ok) {
-        alert("Evento creado exitosamente");
-        router.push("/admin/eventos");
-      } else {
-        const error = await response.json();
-        console.error("Error del backend:", error);
-        alert(`Error: ${error.message || "No se pudo crear el evento"}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al crear el evento");
       }
-    } catch (error) {
+
+      await response.json();
+
+      alert("✅ Evento creado exitosamente");
+      router.push("/admin/eventos");
+    } catch (error: any) {
       console.error("Error creating event:", error);
-      alert("Error al crear evento");
+      alert(`❌ Error al crear el evento: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
-
   return (
     <AdminGuard>
       <div className="min-h-screen bg-gradient-to-b from-zinc-900 to-black py-8 px-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <Link
-              href="/admin/eventos"
-              className="text-purple-400 hover:text-purple-300 mb-2 inline-flex items-center gap-2"
+            <button
+              onClick={() => router.back()}
+              className="mb-4 text-gray-400 hover:text-white flex items-center gap-2 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
-              Volver a Eventos
-            </Link>
-            <h1 className="text-4xl font-bold text-white">Crear Nuevo Evento</h1>
-            <p className="text-gray-400 mt-2">Completa los datos del evento</p>
+              Volver
+            </button>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Crear Nuevo Evento
+            </h1>
+            <p className="text-gray-400">Completa la información del evento</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6 space-y-6">
-            {/* Título */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Título del Evento *
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="Ej: Concierto de Rock"
-              />
-            </div>
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Información Básica */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Información Básica
+              </h2>
 
-            {/* Descripción */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descripción *
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                rows={4}
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="Describe el evento..."
-              />
-            </div>
-
-            {/* Fecha */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Fecha del Evento *
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                required
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            {/* Horas de Inicio y Fin */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Hora de Inicio *
-                </label>
-                <input
-                  type="text"
-                  name="start_time"
-                  value={formData.start_time}
-                  onChange={handleTimeInput}
-                  required
-                  placeholder="14:30"
-                  maxLength={5}
-                  className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none ${
-                    errors.start_time ? "border-red-500" : "border-zinc-600 focus:border-purple-500"
-                  }`}
-                />
-                {errors.start_time && (
-                  <p className="text-red-400 text-sm mt-1">{errors.start_time}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Formato: HH:MM (ej: 14:30)</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Hora de Fin *
-                </label>
-                <input
-                  type="text"
-                  name="end_time"
-                  value={formData.end_time}
-                  onChange={handleTimeInput}
-                  required
-                  placeholder="18:00"
-                  maxLength={5}
-                  className={`w-full px-4 py-2 bg-zinc-700/50 border rounded-lg text-white focus:outline-none ${
-                    errors.end_time ? "border-red-500" : "border-zinc-600 focus:border-purple-500"
-                  }`}
-                />
-                {errors.end_time && (
-                  <p className="text-red-400 text-sm mt-1">{errors.end_time}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Formato: HH:MM (ej: 18:00)</p>
-              </div>
-            </div>
-
-            {/* Ubicación */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Ubicación *
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="Ej: Estadio Nacional, Buenos Aires"
-              />
-            </div>
-
-            {/* Capacidad y Precio */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Capacidad *
-                </label>
-                <input
-                  type="number"
-                  name="capacity"
-                  value={formData.capacity}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  placeholder="1000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Precio *
-                </label>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                  placeholder="50.00"
-                />
-              </div>
-            </div>
-
-            {/* URL de Imagen */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                URL de Imagen
-              </label>
-              <input
-                type="url"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="https://..."
-              />
-            </div>
-
-            {/* Categoría (Single-select con Radio Buttons) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Categoría *
-              </label>
-              
-              {loadingCategories ? (
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-purple-500"></div>
-                  Cargando categorías...
+              <div className="space-y-4">
+                {/* Título */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Título del Evento *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="Ej: Concierto de Rock en Vivo"
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
                 </div>
-              ) : categories.length === 0 ? (
-                <p className="text-red-400 text-sm">
-                  No hay categorías disponibles. Por favor, crea categorías primero.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {categories.map((category) => (
-                    <label
-                      key={category.id}
-                      className={`flex items-center gap-2 px-4 py-3 rounded-lg cursor-pointer transition-all ${
-                        selectedCategory === category.id
-                          ? "bg-purple-600 border-purple-500"
-                          : "bg-zinc-700/50 border-zinc-600 hover:bg-zinc-700"
-                      } border`}
-                    >
-                      <input
-                        type="radio"
-                        name="category"
-                        value={category.id}
-                        checked={selectedCategory === category.id}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-white text-sm">{category.name}</span>
-                    </label>
-                  ))}
+
+                {/* Descripción */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Descripción *
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    placeholder="Describe el evento..."
+                    rows={4}
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                    required
+                  />
                 </div>
-              )}
-              
-              {errors.category && (
-                <p className="text-red-400 text-sm mt-2">{errors.category}</p>
-              )}
+
+                {/* Categoría */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Categoría *
+                  </label>
+                  <select
+                    name="categoryId"
+                    value={formData.categoryId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  >
+                    <option value="">Selecciona una categoría</option>
+                    {loadingCategories ? (
+                      <option value="">Cargando categorías...</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Estado */}
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="status"
-                checked={formData.status}
-                onChange={handleChange}
-                className="w-4 h-4"
+            {/* Fecha y Ubicación */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Fecha y Ubicación
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Fecha */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Fecha *
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Hora */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Hora de Inicio *
+                  </label>
+                  <input
+                    type="time"
+                    name="time"
+                    value={formData.time}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    La duración del evento será de 2 horas
+                  </p>
+                </div>
+
+                {/* Nuevo: Ubicación (3 partes) */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Ubicación *
+                  </label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      type="text"
+                      name="locationCity"
+                      value={formData.locationCity}
+                      onChange={handleChange}
+                      placeholder="Ciudad (ej: Bogotá)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationCountry"
+                      value={formData.locationCountry}
+                      onChange={handleChange}
+                      placeholder="País (ej: Colombia)"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="locationPlace"
+                      value={formData.locationPlace}
+                      onChange={handleChange}
+                      required
+                      placeholder="Nombre del lugar"
+                      className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    />
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-2">
+                    Se guardará como:{" "}
+                    <span className="text-gray-200">
+                      {buildLocation() || "—"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Precio y Capacidad */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Precio y Capacidad
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Precio */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Precio *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                      className="w-full pl-8 pr-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Capacidad */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Capacidad *
+                  </label>
+                  <input
+                    type="number"
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleChange}
+                    placeholder="Ej: 100"
+                    min="1"
+                    className="w-full px-4 py-3 bg-zinc-700/50 border border-zinc-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Imagen */}
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Imagen del Evento
+              </h2>
+              <ImageUpload
+                onImageUploaded={handleImageUploaded}
+                currentImage={formData.image}
+                label="Imagen del Evento *"
               />
-              <label className="text-sm font-medium text-gray-300">
-                Evento activo (visible para usuarios)
-              </label>
             </div>
 
-            {/* Buttons */}
-            <div className="flex gap-4 pt-4">
+            {/* Botones */}
+            <div className="flex gap-4">
               <button
-                type="submit"
-                disabled={loading || loadingCategories}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Creando..." : "Crear Evento"}
-              </button>
-              <Link
-                href="/admin/eventos"
-                className="px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg font-medium transition-colors"
+                type="button"
+                onClick={() => router.back()}
+                className="flex-1 px-6 py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors font-medium"
               >
                 Cancelar
-              </Link>
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                    Creando...
+                  </span>
+                ) : (
+                  "Crear Evento"
+                )}
+              </button>
             </div>
           </form>
         </div>

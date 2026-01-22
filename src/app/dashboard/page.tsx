@@ -18,6 +18,7 @@ import {
   validateBirthday,
   validateProfileForm,
 } from "@/utils/profile.validators";
+import ChangePasswordForm from "@/components/profile/ChangePasswordForm"; // ⭐ NUEVO IMPORT
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading, updateUser } = useAuth();
@@ -205,43 +206,43 @@ export default function DashboardPage() {
         {/* Main Card */}
         <div className="bg-zinc-800/50 rounded-2xl shadow-xl border border-purple-500/20 overflow-hidden">
           {/* Profile Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 h-32"></div>
-
-          <div className="px-6 pb-6">
-            {/* Avatar Section */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-16 mb-6">
+          <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 p-6 border-b border-purple-500/20">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              {/* Profile Image */}
               <div className="relative">
-                {imagePreview || user.profile_photo ? (
-                  <img
-                    src={imagePreview || user.profile_photo!}
-                    alt={user.name || 'Usuario'}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-zinc-800 shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center border-4 border-zinc-800 shadow-lg">
-                    <span className="text-white text-4xl font-bold">
-                      {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </span>
+                <div className="w-32 h-32 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 p-1">
+                  <div className="w-full h-full rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden">
+                    {imagePreview || user.profile_photo ? (
+                      <img
+                       src={imagePreview || user.profile_photo || ""}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl font-bold text-white">
+                        {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                )}
-
+                </div>
                 {isUploading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                  <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <label className="cursor-pointer bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg">
+              {/* Upload Buttons */}
+              <div className="flex flex-col gap-3">
+                <label className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer shadow-lg">
+                  {imagePreview || user.profile_photo ? "Cambiar foto" : "Subir foto"}
                   <input
                     type="file"
-                    className="hidden"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    accept="image/*"
                     onChange={handleImageChange}
+                    className="hidden"
                     disabled={isUploading}
                   />
-                  {isUploading ? "Subiendo..." : "Cambiar foto"}
                 </label>
 
                 {user.profile_photo && (
@@ -399,6 +400,11 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ⭐ SECCIÓN DE CAMBIO DE CONTRASEÑA - NUEVO ⭐ */}
+        <div className="mt-8">
+          <ChangePasswordForm />
         </div>
 
         {/* Stats Cards */}

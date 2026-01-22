@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { Ticket } from "lucide-react";
+import { MessageCircle, Ticket } from "lucide-react";
 import Image from "next/image";
+import { getEventCategories, ICategory } from "@/services/events.service";
 
-export function Footer() {
+export async function Footer() {
+  let categories: ICategory[] = [];
+  try {
+    categories = await getEventCategories();
+  } catch (error) {
+    console.error("Error fetching categories for footer:", error);
+  }
   return (
     <footer className="border-t border-white/5 bg-background pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
@@ -21,24 +28,24 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-6">Descubre</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link 
+                    href={`/events?category=${category.id}`} 
+                    className="hover:text-primary transition-colors"
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link href="#" className="hover:text-primary transition-colors">
-                  Conciertos
+                  Testimonios
                 </Link>
               </li>
               <li>
                 <Link href="#" className="hover:text-primary transition-colors">
-                  Festivales
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-primary transition-colors">
-                  Deportes
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="hover:text-primary transition-colors">
-                  Teatro
+                  Promociones
                 </Link>
               </li>
             </ul>
@@ -48,22 +55,22 @@ export function Footer() {
             <h4 className="font-semibold mb-6">Ayuda</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/help-center" className="hover:text-primary transition-colors">
                   Centro de ayuda
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/terms" className="hover:text-primary transition-colors">
                   Términos de servicio
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/privacy" className="hover:text-primary transition-colors">
                   Política de privacidad
                 </Link>
               </li>
               <li>
-                <Link href="#" className="hover:text-primary transition-colors">
+                <Link href="/contact" className="hover:text-primary transition-colors">
                   Contáctanos
                 </Link>
               </li>
@@ -72,39 +79,62 @@ export function Footer() {
 
           <div>
             <h4 className="font-semibold mb-6">Conéctate</h4>
-            <div className="flex gap-4">
-              <Link
-                href="#"
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary hover:bg-primary hover:text-white transition-all text-muted-foreground"
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <Link
+                  href="https://instagram.com/ticketlive"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-10 w-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-primary transition-all text-muted-foreground hover:text-white"
+                >
+                  <Image
+                    src="/icons/instagram.svg"
+                    alt="Instagram"
+                    width={18}
+                    height={18}
+                  />
+                </Link>
+                <Link
+                  href="https://facebook.com/ticketlive"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-10 w-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-primary transition-all text-muted-foreground hover:text-white"
+                >
+                  <Image
+                    src="/icons/facebook.svg"
+                    alt="Facebook"
+                    width={18}
+                    height={18}
+                  />
+                </Link>
+                <Link
+                  href="https://x.com/ticketlive"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-10 w-10 flex items-center justify-center rounded-full bg-zinc-800 hover:bg-primary transition-all text-muted-foreground hover:text-white"
+                >
+                  <Image
+                    src="/icons/x.svg"
+                    alt="x"
+                    width={18}
+                    height={18}
+                  />
+                </Link>
+              </div>
+
+              <Link 
+                href="https://wa.me/541100000000" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-4 rounded-3xl bg-zinc-900 border border-white/5 hover:border-green-500/30 transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 shadow-lg"
               >
-                <Image
-                  src="/icons/instagram.svg"
-                  alt="Instagram"
-                  width={20}
-                  height={20}
-                />
-              </Link>
-              <Link
-                href="#"
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary hover:bg-primary hover:text-white transition-all text-muted-foreground"
-              >
-                <Image
-                  src="/icons/facebook.svg"
-                  alt="Facebook"
-                  width={20}
-                  height={20}
-                />
-              </Link>
-              <Link
-                href="#"
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary hover:bg-primary hover:text-white transition-all text-muted-foreground"
-              >
-                <Image
-                  src="/icons/x.svg"
-                  alt="x"
-                  width={20}
-                  height={20}
-                />
+                  <div className="h-10 w-10 flex items-center justify-center rounded-full bg-green-500/20 text-green-500 group-hover:bg-green-500 group-hover:text-white transition-all duration-300">
+                      <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider leading-none mb-1">Soporte 24/7</p>
+                    <p className="text-sm font-bold text-white group-hover:text-green-500 transition-colors">WhatsApp Oficial</p>
+                  </div>
               </Link>
             </div>
           </div>

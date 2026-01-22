@@ -28,19 +28,16 @@ export default function Navbar() {
     if (isSearchOpen) searchInputRef.current?.focus();
   }, [isSearchOpen]);
 
-  const pushSearchToUrl = (nextValue: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    const clean = nextValue.trim();
+const pushSearchToUrl = (nextValue: string) => {
+  const params = new URLSearchParams(searchParams.toString());
 
-    if (!clean) params.delete("q");
-    else params.set("q", clean);
+  if (!nextValue) params.delete("q");
+  else params.set("q", nextValue);
 
-    const qs = params.toString();
+  const qs = params.toString();
+  router.push(qs ? `/events?${qs}` : "/events");
+};
 
-    // If not on /events, send them there so they see results
-    const target = "/events";
-    router.push(qs ? `${target}?${qs}` : target);
-  };
 
   const clearSearch = () => {
     setSearchValue("");
@@ -146,7 +143,7 @@ export default function Navbar() {
               Promociones
             </Link>
             <Link
-              href="/como-funciona"
+              href="/help-center"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Cómo funciona
@@ -462,7 +459,7 @@ export default function Navbar() {
               Promociones
             </Link>
             <Link
-              href="/como-funciona"
+              href="/help-center"
               className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

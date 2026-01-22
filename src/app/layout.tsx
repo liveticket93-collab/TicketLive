@@ -5,6 +5,8 @@ import Navbar from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { TicketsProvider } from "@/contexts/TIcketsContext"; // ⭐ NUEVO
 import { Toaster } from "sonner";
 import { ChatBot } from "@/components/ui/ChatBot";
 
@@ -39,6 +41,6 @@ export default function RootLayout({
           </CartProvider>
         </AuthProvider>
       </body>
-    </html >
+    </html>
   );
 }
