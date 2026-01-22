@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error("Error en suscripción:", error);
         return NextResponse.json(
-            { error: "Error interno del servidor" },
+            { error: "Error interno del servidor", details: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
