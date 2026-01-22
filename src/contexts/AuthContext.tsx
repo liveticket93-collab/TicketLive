@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // TEMPORALMENTE COMENTADO: El backend no guarda los cambios correctamente
     // Descomentar cuando el backend esté arreglado
-    // refreshUser();
+    refreshUser();
     
     setIsLoading(false);
   }, [refreshUser]);

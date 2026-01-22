@@ -143,7 +143,7 @@ const pushSearchToUrl = (nextValue: string) => {
               Promociones
             </Link>
             <Link
-              href="/como-funciona"
+              href="/help-center"
               className="text-gray-300 hover:text-white font-medium transition-colors duration-200"
             >
               Cómo funciona
@@ -459,7 +459,7 @@ const pushSearchToUrl = (nextValue: string) => {
               Promociones
             </Link>
             <Link
-              href="/como-funciona"
+              href="/help-center"
               className="block text-gray-300 hover:text-white hover:bg-zinc-700 hover:bg-opacity-50 px-3 py-2 rounded-lg font-medium transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >

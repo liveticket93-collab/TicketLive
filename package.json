@@ -17,6 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "formik": "^2.4.6",
+    "lodash-es": "^4.17.22",
     "lucide-react": "^0.562.0",
     "maplibre-gl": "^5.16.0",
     "next": "16.0.10",
