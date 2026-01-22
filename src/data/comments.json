@@ -1,5 +1,6 @@
 [
   {
+    "_COMENTARIO_IMPORTANTR": "PASO 3: BORRAR ESTE ARCHIVO. Este es un almacenamiento temporal. Cuando conectes el backend real, borra la carpeta src/data.",
     "id": "1769038476191",
     "name": "Leo",
     "role": "Fan Verificado",
@@ -10,5 +11,16 @@
     "verified": true,
     "event": "Evento Reciente",
     "createdAt": "2026-01-21T23:34:36.191Z"
+  },
+  {
+    "id": "1769060899804",
+    "name": "Leo",
+    "role": "Fan Verificado",
+    "content": "no me gusto",
+    "rating": 1,
+    "image": "https://res.cloudinary.com/dhm9f8fre/image/upload/v1768953219/liveticket/wylhsnn3u9wgptf9v0sf.png",
+    "verified": true,
+    "event": "Evento Reciente",
+    "createdAt": "2026-01-22T05:48:19.804Z"
   }
 ]

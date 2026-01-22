@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+// PASO 2: ELIMINAR ESTE ARCHIVO
+// Una vez que el backend real esté funcionando y hayas actualizado src/services/comments.service.ts,
+// debes BORRAR este archivo (src/app/api/comments/route.ts) y la carpeta src/data entera.
+// Este código es solo una simulación temporal.
+
 const dataFilePath = path.join(process.cwd(), "src", "data", "comments.json");
 
-// Helper to read comments
+// Helper para leer comentarios
 const getComments = () => {
     if (!fs.existsSync(dataFilePath)) {
         return [];
@@ -17,7 +22,7 @@ const getComments = () => {
     }
 };
 
-// Helper to save comments
+// Helper para guardar comentarios
 const saveComments = (comments: any[]) => {
     fs.writeFileSync(dataFilePath, JSON.stringify(comments, null, 2), "utf8");
 };
@@ -27,7 +32,7 @@ export async function GET() {
         const comments = getComments();
         return NextResponse.json(comments);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 });
+        return NextResponse.json({ error: "Error al obtener los comentarios" }, { status: 500 });
     }
 }
 
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
         const { name, role, content, rating, image, eventImage, verified, event } = body;
 
         if (!name || !content || !rating) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+            return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 });
         }
 
         const newComment = {
@@ -46,8 +51,8 @@ export async function POST(request: Request) {
             role: role || "Usuario",
             content,
             rating,
-            image, // User avatar
-            eventImage, // Event photo (Base64)
+            image, // Avatar del usuario
+            eventImage, // Foto del evento (Base64)
             verified: verified || false,
             event: event || "Evento General",
             createdAt: new Date().toISOString(),
@@ -59,7 +64,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json(newComment, { status: 201 });
     } catch (error) {
-        console.error("Error saving comment:", error);
-        return NextResponse.json({ error: "Failed to save comment" }, { status: 500 });
+        console.error("Error detallado al guardar comentario:", error);
+        return NextResponse.json(
+            { error: "Error al guardar el comentario: " + (error instanceof Error ? error.message : String(error)) },
+            { status: 500 }
+        );
     }
 }

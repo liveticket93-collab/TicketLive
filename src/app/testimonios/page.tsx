@@ -6,7 +6,7 @@ import Image from "next/image";
 import CommentForm from "@/components/testimonials/CommentForm";
 import { getComments, Comment } from "@/services/comments.service";
 
-// Static initial data (moved outside component)
+// Datos iniciales estáticos (movidos fuera del componente)
 const initialTestimonials = [
   {
     name: "Alejandra Torres",
@@ -44,7 +44,7 @@ export default function TestimoniosPage() {
   const fetchComments = async () => {
     try {
       const comments = await getComments();
-      // Reverse to show newest first, then merge with static
+      // Invertir para mostrar primero los más recientes, luego fusionar con los estáticos
       setDynamicComments(comments.reverse());
     } catch (error) {
       console.error("Error fetching comments", error);
@@ -55,7 +55,7 @@ export default function TestimoniosPage() {
     fetchComments();
   }, []);
 
-  // Update displayed list when dynamic comments change
+  // Actualizar la lista mostrada cuando cambian los comentarios dinámicos
   useEffect(() => {
     setAllTestimonials([...dynamicComments, ...initialTestimonials]);
   }, [dynamicComments]);
@@ -63,7 +63,7 @@ export default function TestimoniosPage() {
   return (
     <main className="min-h-screen pt-20 pb-16 relative overflow-hidden bg-zinc-950"> 
       
-      {/* Background Decorative Elements */}
+      {/* Elementos Decorativos de Fondo */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-pink-500/10 rounded-full blur-[150px]" />
@@ -83,16 +83,16 @@ export default function TestimoniosPage() {
           </p>
         </div>
 
-        {/* Comment Form Section */}
+        {/* Sección de Formulario de Comentarios */}
         <div className="mb-20">
           <CommentForm onCommentAdded={fetchComments} />
         </div>
 
-        {/* Testimonials Masonry/Grid */}
+        {/* Mampostería/Cuadrícula de Testimonios */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
           {allTestimonials.map((t, i) => (
             <div 
-              key={t.id || i} // Use ID if available (dynamic), else index
+              key={t.id || i} // Usar ID si está disponible (dinámico), si no índice
               className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-purple-500/30 transition-all group relative animate-in fade-in slide-in-from-bottom-5 duration-700 hover:-translate-y-1 flex flex-col"
               style={{ animationDelay: `${(i % 6) * 100}ms` }}
             >
@@ -113,7 +113,7 @@ export default function TestimoniosPage() {
                 "{t.content}"
               </p>
 
-              {/* Event Photo if available */}
+              {/* Foto del Evento si está disponible */}
               {t.eventImage && (
                 <div className="mb-6 relative w-full h-40 rounded-xl overflow-hidden border border-white/5 group-hover:border-purple-500/20 transition-colors">
                   <Image 
@@ -155,7 +155,7 @@ export default function TestimoniosPage() {
           ))}
         </div>
 
-        {/* Stats Section */}
+        {/* Sección de Estadísticas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-xl">
           {[
             { label: 'Entradas Vendidas', value: '500k+' },
