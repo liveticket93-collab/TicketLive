@@ -19,14 +19,20 @@ export default function Home() {
         body: JSON.stringify({ email }),
       });
 
-      if (!res.ok) throw new Error("Error al suscribirse");
+      const data = await res.json();
+      console.log("Respuesta del servidor:", data);
+
+      if (!res.ok) {
+        throw new Error(data.details || data.error || "Error al suscribirse");
+      }
 
       toast.success("¡Suscrito exitosamente!", {
         description: "Serás el primero en enterarte de nuevos eventos.",
       });
     } catch (error) {
-      toast.error("Hubo un error", {
-        description: "Por favor intenta nuevamente más tarde.",
+      console.error("Error en el cliente:", error);
+      toast.error("Error en la suscripción", {
+        description: error instanceof Error ? error.message : "Por favor intenta nuevamente más tarde.",
       });
     }
   };
