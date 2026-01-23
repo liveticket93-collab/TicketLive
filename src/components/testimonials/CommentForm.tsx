@@ -36,25 +36,25 @@ export default function CommentForm({ onCommentAdded }: { onCommentAdded: () => 
     try {
       await createComment({
         name: user.name || "Usuario",
-        role: "Fan Verificado", // Default role for authenticated users
+        role: "Fan Verificado", // Rol por defecto para usuarios autenticados
         content,
         rating,
-        image: user.profile_photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", // Fallback avatar
+        image: user.profile_photo || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200", // Avatar de respaldo
         eventImage: eventImage || undefined,
         verified: true,
-        event: "Evento Reciente", // In a real app, this field could be a selector
+        event: "Evento Reciente", // En una app real, esto podría ser un selector
       });
       
-      // Reset form
+      // Reiniciar formulario
       setContent("");
       setRating(5);
       setEventImage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       
-      // Notify parent to refresh list
+      // Notificar al padre para refrescar la lista
       onCommentAdded();
     } catch (error) {
-      console.error("Error submitting comment:", error);
+      console.error("Error enviando comentario:", error);
       alert("Hubo un error al enviar tu comentario. Por favor intenta de nuevo.");
     } finally {
       setIsSubmitting(false);
@@ -104,7 +104,7 @@ export default function CommentForm({ onCommentAdded }: { onCommentAdded: () => 
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Rating */}
+        {/* Calificación */}
         <div className="flex flex-col gap-2">
           <label className="text-sm text-zinc-400 font-medium">Tu Calificación</label>
           <div className="flex gap-2">
@@ -127,7 +127,7 @@ export default function CommentForm({ onCommentAdded }: { onCommentAdded: () => 
           </div>
         </div>
 
-        {/* Comment Input */}
+        {/* Input de Comentario */}
         <div className="space-y-2">
           <label htmlFor="content" className="text-sm text-zinc-400 font-medium">Tu Comentario</label>
           <textarea
@@ -140,7 +140,7 @@ export default function CommentForm({ onCommentAdded }: { onCommentAdded: () => 
           />
         </div>
 
-        {/* Image Upload */}
+        {/* Carga de Imagen */}
         <div className="space-y-2">
           <label className="text-sm text-zinc-400 font-medium block">Foto del Evento (Opcional)</label>
           
