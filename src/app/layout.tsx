@@ -32,16 +32,12 @@ export default function RootLayout({
         {/* AuthProvider envuelve toda la app para proveer el contexto de autenticación */}
         <AuthProvider>
           <CartProvider>
-            <FavoritesProvider>
-              <TicketsProvider> {/* ⭐ AGREGADO */}
-                <Navbar />
-                {children}
-                <Footer />
-                {/* Toaster para mostrar notificaciones en toda la app */}
-                <Toaster position="top-right" richColors />
-                <ChatBot />
-              </TicketsProvider> {/* ⭐ AGREGADO */}
-            </FavoritesProvider>
+            <Navbar />
+            {children}
+            <Footer />
+            {/* Toaster para mostrar notificaciones en toda la app */}
+            <Toaster position="top-right" richColors />
+            <ChatBot />
           </CartProvider>
         </AuthProvider>
       </body>
