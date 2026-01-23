@@ -13,10 +13,8 @@ export interface Comment {
 
 // Configuración del Endpoint
 // ---------------------------------------------------------
-// PASO 1: Cuando el backend real termine los endpoints, cambia esta constante.
-// Si el backend está en otro dominio (ej. https://api.ticketlive.com), pon la URL completa.
-// Recomendación: Usa una variable de entorno como: process.env.NEXT_PUBLIC_API_URL + "/comments"
-const API_URL = "/api/comments";
+// Ahora apuntamos directamente al Backend NestJS para evitar usar 'fs' en Vercel
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/comments`;
 // ---------------------------------------------------------
 
 export const getComments = async (): Promise<Comment[]> => {
