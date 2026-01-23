@@ -36,18 +36,18 @@ export const getEvent = async (id: string): Promise<IEvent> => {
 }
 
 export const getEventCategories = async (): Promise<ICategory[]> => {
-  const res = await fetch (`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
     },
   });
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch categories");
-    }
+  if (!res.ok) {
+    throw new Error("Failed to fetch categories");
+  }
 
-    return res.json();
+  return res.json();
 }
 
 export const dateFormatter = (date: Date) => {
@@ -57,7 +57,7 @@ export const dateFormatter = (date: Date) => {
     month: "short",
     day: "numeric",
   });
-} 
+}
 
 export const timeFormatter = (startTime: string) => {
   const dateObj = new Date(startTime);
