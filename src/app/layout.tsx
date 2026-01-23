@@ -10,7 +10,6 @@ import { TicketsProvider } from "@/contexts/TIcketsContext"; // ⭐ NUEVO
 import { Toaster } from "sonner";
 import { ChatBot } from "@/components/ui/ChatBot";
 
-
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
@@ -18,7 +17,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "TicketLive - Premium Concert Tickets",
-  description: "Secure tickets for the best live events, concerts, and festivals.",
+  description:
+    "Secure tickets for the best live events, concerts, and festivals.",
 };
 
 export default function RootLayout({
@@ -28,17 +28,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
+      <body
+        className={`${inter.variable} antialiased min-h-screen flex flex-col`}
+      >
         {/* AuthProvider envuelve toda la app para proveer el contexto de autenticación */}
         <AuthProvider>
-          <CartProvider>
-            <Navbar />
-            {children}
-            <Footer />
-            {/* Toaster para mostrar notificaciones en toda la app */}
-            <Toaster position="top-right" richColors />
-            <ChatBot />
-          </CartProvider>
+          <FavoritesProvider>
+            <CartProvider>
+              <Navbar />
+              {children}
+              <Footer />
+              {/* Toaster para mostrar notificaciones en toda la app */}
+              <Toaster position="top-right" richColors />
+              <ChatBot />
+            </CartProvider>
+          </FavoritesProvider>
         </AuthProvider>
       </body>
     </html>
