@@ -224,6 +224,33 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </Link>
+              {/* Newsletter */}
+              <Link
+                href="/admin/newsletter"
+                className="bg-zinc-800/50 border border-indigo-500/20 rounded-xl p-6 hover:border-indigo-500/50 hover:bg-zinc-800/70 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-600/20 rounded-xl flex items-center justify-center group-hover:bg-indigo-600/30 transition-all">
+                    <svg
+                      className="w-6 h-6 text-indigo-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-1">Newsletter</h3>
+                    <p className="text-gray-400 text-sm">Enviar correos masivos</p>
+                  </div>
+                </div>
+              </Link>
             </div>
           </div>
 
